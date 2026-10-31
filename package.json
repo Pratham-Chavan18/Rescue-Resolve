@@ -1,0 +1,26 @@
+{
+  "name": "swiggy-recovery",
+  "private": true,
+  "packageManager": "pnpm@9.15.9",
+  "scripts": {
+    "dev": "turbo run dev",
+    "dev:web": "turbo run dev --filter=@swiggy/web",
+    "dev:api": "turbo run dev --filter=@swiggy/api",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck",
+    "db:up": "docker compose up -d postgres redis",
+    "db:migrate": "pnpm --filter @swiggy/api run prisma:migrate",
+    "db:seed": "pnpm --filter @swiggy/api run prisma:seed"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.3",
+    "@playwright/test": "^1.48.2",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  }
+}

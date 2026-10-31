@@ -1,0 +1,210 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Hallmark stamp — Swiggy Recovery UI · genre: app-screen · design: Design.md locked system */
+/* critique: calm-competent food recovery; orange signal only on CTAs, health states semantic */
+
+/* ── Google Fonts ─────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Archivo:wght@400;500;600&display=swap');
+
+/* ── Design.md §2 tokens ─────────────────────────────────────────────────── */
+:root {
+  --bg:           #F7F7F9;
+  --surface:      #FFFFFF;
+  --surface-sunk: #F1F0F4;
+  --ink:          #1C1C1C;
+  --ink-2:        #686B78;
+  --line:         #E9E9EB;
+  --accent:       #FC8019;
+  --accent-ink:   #B24E00;
+  --accent-soft:  #FFF3E8;
+  --ok:           #1BA672;
+  --ok-soft:      #EAF7F1;
+  --warn:         #C77400;
+  --warn-soft:    #FFF6E5;
+  --bad:          #D7263D;
+  --bad-soft:     #FDECEF;
+
+  --font-display: "Space Grotesk", sans-serif;
+  --font-body:    "Archivo", sans-serif;
+
+  --r-lg:   16px;
+  --r-md:   12px;
+  --r-pill: 999px;
+}
+
+/* Hallmark floor rules (non-waivable) */
+html, body {
+  overflow-x: clip; /* never overflow-x: hidden, never 100vw */
+}
+
+html {
+  font-family: var(--font-body);
+  background-color: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Floor: animate only transform/opacity — never width/height/top/left */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* Floor: focus-visible ring — 2px accent, appears instantly */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Floor: reduced-motion — all choreography collapses to instant */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Type scale ─────────────────────────────────────────────────────────── */
+.text-display {
+  font-family: var(--font-display);
+  font-size: 28px;
+  line-height: 34px;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+
+.text-title {
+  font-size: 20px;
+  line-height: 28px;
+  font-weight: 600;
+  font-family: var(--font-body);
+}
+
+.text-body {
+  font-size: 16px;
+  line-height: 24px;
+  font-family: var(--font-body);
+}
+
+.text-meta {
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.09em;
+  font-family: var(--font-body);
+  color: var(--ink-2);
+}
+
+/* ── Amount display (Design.md §2) ──────────────────────────────────────── */
+.amount {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+/* ── Health state pills ──────────────────────────────────────────────────── */
+.pill-on-track  { background: var(--ok-soft);   color: var(--ok);   }
+.pill-at-risk   { background: var(--warn-soft);  color: var(--warn); }
+.pill-failing   { background: var(--bad-soft);   color: var(--bad);  }
+.pill-recovered { background: var(--ok-soft);   color: var(--ok);   }
+.pill-failed    { background: var(--surface-sunk); color: var(--ink-2); }
+
+/* ── Cards ──────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+}
+
+/* ── Bottom sheets ──────────────────────────────────────────────────────── */
+.sheet {
+  background: var(--surface);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  box-shadow: 0 -4px 24px rgba(0,0,0,0.10);
+}
+
+/* ── Step enter animation (Design.md §3) ───────────────────────────────── */
+@keyframes step-enter {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.step-enter {
+  animation: step-enter 200ms ease-out forwards;
+}
+
+/* ── Pulse for active timeline row ─────────────────────────────────────── */
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(252,128,25,0.4); }
+  70%  { box-shadow: 0 0 0 8px rgba(252,128,25,0); }
+  100% { box-shadow: 0 0 0 0 rgba(252,128,25,0); }
+}
+.pulse-accent { animation: pulse-ring 2s ease-out infinite; }
+
+/* ── Stagger rows for evaluation sequence ──────────────────────────────── */
+.stagger-1 { animation-delay: 0ms; }
+.stagger-2 { animation-delay: 100ms; }
+.stagger-3 { animation-delay: 200ms; }
+.stagger-4 { animation-delay: 300ms; }
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+.btn-primary {
+  background: var(--accent);
+  color: #fff;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 16px;
+  border-radius: var(--r-pill);
+  padding: 14px 24px;
+  min-height: 44px; /* touch target */
+  border: none;
+  cursor: pointer;
+  transition: background 150ms ease-out, transform 150ms ease-out, opacity 150ms ease-out;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+.btn-primary:hover  { background: #E06000; }
+.btn-primary:active { transform: scale(0.98); }
+.btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.btn-secondary {
+  background: transparent;
+  color: var(--accent-ink);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 16px;
+  border: 1.5px solid var(--accent);
+  border-radius: var(--r-pill);
+  padding: 13px 24px;
+  min-height: 44px;
+  cursor: pointer;
+  transition: background 150ms ease-out, transform 150ms ease-out;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+}
+.btn-secondary:hover  { background: var(--accent-soft); }
+.btn-secondary:active { transform: scale(0.98); }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ink-2);
+  font-family: var(--font-body);
+  font-size: 14px;
+  border: none;
+  cursor: pointer;
+  padding: 10px 16px;
+  min-height: 44px;
+  border-radius: var(--r-md);
+  transition: background 150ms ease-out;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.btn-ghost:hover { background: var(--surface-sunk); }

@@ -1,0 +1,398 @@
+// This is your Prisma schema file.
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  customer
+  restaurant
+  rider
+  agent
+}
+
+enum OrderStatus {
+  placed
+  accepted
+  packed
+  rider_assigned
+  picked_up
+  near_you
+  delivered
+  cancelled
+  failed
+}
+
+enum HealthState {
+  on_track
+  at_risk
+  failing
+  recovered
+  failed
+}
+
+enum HealthSignalKind {
+  rider_stationary
+  pickup_delay
+  eta_slip
+  pack_delay
+  delivered_unconfirmed
+}
+
+enum RescueStatus {
+  offered
+  accepted
+  expired
+  cancelled
+}
+
+enum RescueChoice {
+  wait
+  replace
+  cancel
+}
+
+enum IssueKind {
+  wrong_item
+  missing_item
+  quality
+  late_delivery
+}
+
+enum ResolveStatus {
+  draft
+  checking
+  offered
+  accepted
+  escalated
+  resolved
+  rejected
+}
+
+enum Confidence {
+  high
+  medium
+  low
+}
+
+enum EvidenceKind {
+  photo
+  timestamp
+  line_item
+}
+
+enum EvidenceVerdict {
+  mismatch_verified
+  quality_verified
+  ambiguous
+  pending
+}
+
+enum LedgerCause {
+  restaurant
+  logistics
+  customer_address
+  platform
+}
+
+enum LedgerKind {
+  credit
+  refund
+  partial_refund
+  note
+}
+
+enum EntitlementDestination {
+  source
+  wallet
+}
+
+enum AgentAction {
+  approve
+  custom_refund
+  reject
+}
+
+// ─── Core entities ────────────────────────────────────────────────────────────
+
+model User {
+  id         String   @id @default(cuid())
+  phone      String   @unique
+  role       UserRole
+  name       String
+  /// Masked UPI/card for display only — never store full payment details
+  upiMasked  String?
+  createdAt  DateTime @default(now())
+
+  orders        Order[]
+  resolveCases  ResolveCase[] @relation("CustomerCases")
+  agentCases    ResolveCase[] @relation("AgentCases")
+  notifications Notification[]
+  restaurant    Restaurant?
+  rider         Rider?
+
+  @@map("users")
+}
+
+model Restaurant {
+  id        String  @id @default(cuid())
+  name      String
+  cuisine   String
+  vegOnly   Boolean @default(false)
+  lat       Float
+  lng       Float
+  /// Rolling issue rate — used as signal in FairnessEngine (never sole basis)
+  issueRate Float   @default(0)
+  /// Current load level for matcher — updated by simulator
+  load      String  @default("low")
+
+  user   User?   @relation(fields: [userId], references: [id])
+  userId String? @unique
+
+  orders     Order[]
+  menuItems  MenuItem[]
+
+  @@map("restaurants")
+}
+
+// Add User relation to Restaurant — needs bidirectional
+// Note: Restaurant ↔ User is 1:1 for the demo (each restaurant has one login)
+
+model MenuItem {
+  id           String  @id @default(cuid())
+  restaurantId String
+  name         String
+  description  String?
+  pricePaise   Int     // Integer paise — NEVER store as float
+  isVeg        Boolean @default(false)
+  category     String?
+  available    Boolean @default(true)
+
+  restaurant Restaurant @relation(fields: [restaurantId], references: [id])
+
+  @@map("menu_items")
+}
+
+model Rider {
+  id     String  @id @default(cuid())
+  name   String
+  lat    Float
+  lng    Float
+  /// online | on_delivery | offline
+  status String  @default("online")
+
+  user   User?   @relation(fields: [userId], references: [id])
+  userId String? @unique
+
+  orders Order[]
+
+  @@map("riders")
+}
+
+model Order {
+  id           String      @id @default(cuid())
+  userId       String
+  restaurantId String
+  riderId      String?
+  status       OrderStatus @default(placed)
+  /// Total in integer paise
+  totalPaise   Int
+  /// Delivery fee in integer paise
+  deliveryFeePaise Int     @default(0)
+  promisedAt   DateTime
+  deliveredAt  DateTime?
+  address      String
+  /// originalOrderId links replacement orders back to the Rescue case
+  originalOrderId String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  user         User         @relation(fields: [userId], references: [id])
+  restaurant   Restaurant   @relation(fields: [restaurantId], references: [id])
+  rider        Rider?       @relation(fields: [riderId], references: [id])
+  items        OrderItem[]
+  events       OrderEvent[]
+  healthSignals HealthSignal[]
+  health       OrderHealth?
+  rescueCases  RescueCase[]
+  resolveCases ResolveCase[]
+  ledgerEntries LedgerEntry[]
+
+  @@map("orders")
+}
+
+model OrderItem {
+  id         String @id @default(cuid())
+  orderId    String
+  name       String
+  /// Price in integer paise
+  pricePaise Int
+  qty        Int
+  isVeg      Boolean @default(false)
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("order_items")
+}
+
+model OrderEvent {
+  id      String   @id @default(cuid())
+  orderId String
+  type    String   // accepted | packed | rider_assigned | gps_ping | delivered | fault
+  payload Json     @default("{}")
+  at      DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@index([orderId, at])
+  @@map("order_events")
+}
+
+// ─── Order Health ─────────────────────────────────────────────────────────────
+
+model HealthSignal {
+  id      String           @id @default(cuid())
+  orderId String
+  kind    HealthSignalKind
+  /// Numeric value (minutes, etc.) — see TriggerEngine docs
+  value   Float
+  at      DateTime         @default(now())
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@index([orderId, at])
+  @@map("health_signals")
+}
+
+model OrderHealth {
+  id        String      @id @default(cuid())
+  orderId   String      @unique
+  state     HealthState @default(on_track)
+  etaAt     DateTime
+  /// Serialized TriggerFired[] for current state
+  triggersJson Json     @default("[]")
+  /// Serialized RuleTrace[] for current state
+  ruleTraceJson Json    @default("[]")
+  updatedAt DateTime    @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("order_health")
+}
+
+// ─── Rescue ───────────────────────────────────────────────────────────────────
+
+model RescueCase {
+  id             String       @id @default(cuid())
+  orderId        String
+  trigger        String       // RescueTrigger serialized
+  /// Snapshot of options at case creation — never recompute from live data
+  optionsJson    Json
+  choice         RescueChoice?
+  slaAt          DateTime?
+  status         RescueStatus @default(offered)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@map("rescue_cases")
+}
+
+// ─── Resolve ──────────────────────────────────────────────────────────────────
+
+model ResolveCase {
+  id           String        @id @default(cuid())
+  orderId      String
+  userId       String
+  issue        IssueKind
+  /// Serialized FairnessDecision
+  decisionJson Json?
+  confidence   Confidence?
+  status       ResolveStatus @default(draft)
+  agentId      String?
+  agentAction  AgentAction?
+  agentReasonCode String?
+  agentNote    String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  order    Order      @relation(fields: [orderId], references: [id])
+  customer User       @relation("CustomerCases", fields: [userId], references: [id])
+  agent    User?      @relation("AgentCases", fields: [agentId], references: [id])
+  evidence Evidence[]
+
+  @@map("resolve_cases")
+}
+
+model Evidence {
+  id       String           @id @default(cuid())
+  caseId   String
+  kind     EvidenceKind
+  /// URL to stored file — never inline base64 (CONSTRAINTS §4.16)
+  url      String?
+  /// For line_item evidence: serialized selected items JSON
+  payload  Json?
+  verdict  EvidenceVerdict  @default(pending)
+  at       DateTime         @default(now())
+
+  resolveCase ResolveCase @relation(fields: [caseId], references: [id])
+
+  @@map("evidence")
+}
+
+// ─── Recovery Ledger (append-only) ───────────────────────────────────────────
+
+model LedgerEntry {
+  id          String      @id @default(cuid())
+  orderId     String
+  cause       LedgerCause
+  /// Who wrote this entry: 'system' | userId | 'simulator'
+  actor       String
+  kind        LedgerKind
+  /// Amount in integer paise — 0 for notes
+  amountPaise Int         @default(0)
+  destination EntitlementDestination?
+  note        String
+  /// Serialized evidence references
+  evidenceJson Json       @default("[]")
+  at          DateTime    @default(now())
+  // NO updatedAt — this is an append-only log (CONSTRAINTS §3.9, DECISIONS D12)
+
+  order Order @relation(fields: [orderId], references: [id])
+
+  @@index([orderId, at])
+  @@map("ledger_entries")
+}
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+model Notification {
+  id      String    @id @default(cuid())
+  userId  String
+  kind    String
+  payload Json      @default("{}")
+  readAt  DateTime?
+  at      DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, at])
+  @@map("notifications")
+}
+
+// ─── Workaround: add restaurant relation to User ──────────────────────────────
+// Prisma requires both sides of 1:1 relations to be explicit
+// User.restaurantProfile and User.riderProfile are set at seeding
+
+// Note: Adding these reverse relations requires schema additions:
+// The User model above needs: restaurantProfile Restaurant?  and  riderProfile Rider?
+// These are implicit via Restaurant.userId and Rider.userId — Prisma handles them.
