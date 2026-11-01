@@ -19,28 +19,49 @@ export class LocalStorageService implements StorageService {
     }
   }
 
+  private getSafeFullPath(objectPath: string): string {
+    const sanitized = objectPath.replace(/\\/g, '/').replace(/^\/+/, '');
+    const segments = sanitized.split('/');
+    if (segments.some((segment) => segment === '..' || segment === '.' || segment === '')) {
+      throw new Error('Invalid storage path: path traversal detected');
+    }
+    if (!/^[a-zA-Z0-9_\-\.\/]+$/.test(sanitized)) {
+      throw new Error('Invalid storage path: illegal characters');
+    }
+
+    const baseDir = path.resolve(this.uploadsDir);
+    const resolved = path.resolve(baseDir, sanitized);
+    if (!resolved.startsWith(baseDir + path.sep)) {
+      throw new Error('Invalid storage path: path traversal detected');
+    }
+    return resolved;
+  }
+
   async upload(objectPath: string, buffer: Buffer): Promise<{ path: string }> {
-    const fullPath = path.join(this.uploadsDir, objectPath);
-    const dir = path.dirname(fullPath);
+    const safePath = this.getSafeFullPath(objectPath);
+    const dir = path.dirname(safePath);
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    fs.writeFileSync(fullPath, buffer);
-    return { path: objectPath };
+    fs.writeFileSync(safePath, buffer);
+    return { path: objectPath.replace(/\\/g, '/').replace(/^\/+/, '') };
   }
 
   async getSignedUrl(objectPath: string): Promise<string> {
-    const clean = objectPath.startsWith('/') ? objectPath : `/${objectPath}`;
-    return clean.startsWith('/uploads/') ? clean : `/uploads${clean}`;
+    const sanitized = objectPath.replace(/\\/g, '/').replace(/^\/+/, '');
+    if (sanitized.includes('..')) {
+      throw new Error('Invalid storage path: path traversal detected');
+    }
+    return `/uploads/${sanitized}`;
   }
 
   async delete(objectPath: string): Promise<void> {
-    const fullPath = path.join(this.uploadsDir, objectPath);
-    if (fs.existsSync(fullPath)) {
+    const safePath = this.getSafeFullPath(objectPath);
+    if (fs.existsSync(safePath)) {
       try {
-        fs.unlinkSync(fullPath);
+        fs.unlinkSync(safePath);
       } catch (err: any) {
-        this.logger.warn(`Could not delete local file ${fullPath}: ${err.message}`);
+        this.logger.warn(`Could not delete local file ${safePath}: ${err.message}`);
       }
     }
   }

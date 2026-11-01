@@ -48,16 +48,29 @@ export class SupabaseStorageService implements StorageService {
     }
   }
 
+  private sanitizePath(objectPath: string): string {
+    const sanitized = objectPath.replace(/\\/g, '/').replace(/^\/+/, '');
+    const segments = sanitized.split('/');
+    if (segments.some((segment) => segment === '..' || segment === '.' || segment === '')) {
+      throw new Error('Invalid storage path: path traversal detected');
+    }
+    if (!/^[a-zA-Z0-9_\-\.\/]+$/.test(sanitized)) {
+      throw new Error('Invalid storage path: illegal characters');
+    }
+    return sanitized;
+  }
+
   async upload(objectPath: string, buffer: Buffer, mimetype: string): Promise<{ path: string }> {
+    const safePath = this.sanitizePath(objectPath);
     const { data, error } = await this.client.storage
       .from(this.bucket)
-      .upload(objectPath, buffer, {
+      .upload(safePath, buffer, {
         contentType: mimetype,
         upsert: true,
       });
 
     if (error) {
-      this.logger.error(`Supabase upload error for path "${objectPath}": ${error.message}`);
+      this.logger.error(`Supabase upload error for path "${safePath}": ${error.message}`);
       throw new Error(`Failed to upload evidence to Supabase Storage: ${error.message}`);
     }
 
@@ -65,12 +78,13 @@ export class SupabaseStorageService implements StorageService {
   }
 
   async getSignedUrl(objectPath: string, expiresInSeconds = 3600): Promise<string> {
+    const safePath = this.sanitizePath(objectPath);
     const { data, error } = await this.client.storage
       .from(this.bucket)
-      .createSignedUrl(objectPath, expiresInSeconds);
+      .createSignedUrl(safePath, expiresInSeconds);
 
     if (error || !data?.signedUrl) {
-      this.logger.error(`Failed to generate signed URL for "${objectPath}": ${error?.message}`);
+      this.logger.error(`Failed to generate signed URL for "${safePath}": ${error?.message}`);
       throw new Error(`Failed to generate signed URL: ${error?.message}`);
     }
 
@@ -78,9 +92,10 @@ export class SupabaseStorageService implements StorageService {
   }
 
   async delete(objectPath: string): Promise<void> {
-    const { error } = await this.client.storage.from(this.bucket).remove([objectPath]);
+    const safePath = this.sanitizePath(objectPath);
+    const { error } = await this.client.storage.from(this.bucket).remove([safePath]);
     if (error) {
-      this.logger.warn(`Failed to delete storage object "${objectPath}": ${error.message}`);
+      this.logger.warn(`Failed to delete storage object "${safePath}": ${error.message}`);
     }
   }
 }
