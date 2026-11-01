@@ -99,7 +99,7 @@ Configure the exact deployment commands:
 
 - **Build Command:**
   ```bash
-  pnpm install --frozen-lockfile && pnpm --filter @swiggy/api exec prisma generate && pnpm exec turbo run build --filter=...@swiggy/api
+  pnpm install --frozen-lockfile && pnpm --filter @swiggy/api exec prisma generate && pnpm exec turbo run build --filter=...@swiggy/api --force
   ```
 - **Pre-Deploy Command:**
   ```bash

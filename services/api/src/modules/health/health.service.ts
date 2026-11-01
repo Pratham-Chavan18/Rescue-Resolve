@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RealtimeService } from '../realtime/realtime.service';
-import { evaluate, DEFAULT_THRESHOLDS, type HealthSignal } from '@swiggy/engines';
+import { evaluate, DEFAULT_THRESHOLDS, type HealthSignal, type TriggerFired } from '@swiggy/engines';
 import type { HealthSignalKind } from '@swiggy/types';
 
 @Injectable()
@@ -76,7 +76,7 @@ export class HealthService {
       orderId,
       state: result.healthState,
       etaAt: etaAt.toISOString(),
-      triggers: result.triggers.map((t) => t.trigger),
+      triggers: result.triggers.map((t: TriggerFired) => t.trigger),
     });
   }
 
