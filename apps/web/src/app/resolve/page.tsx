@@ -46,10 +46,10 @@ export default function ResolvePage() {
       resolveApi.createCase(selectedOrderId, issue, token!),
     onSuccess: (data: any) => {
       setCaseId(data.id);
-      if (selectedIssue === 'missing_item' || selectedIssue === 'wrong_item') {
-        setStep('select-items');
-      } else if (selectedIssue === 'quality') {
+      if (selectedIssue === 'wrong_item' || selectedIssue === 'quality') {
         setStep('evidence');
+      } else if (selectedIssue === 'missing_item') {
+        setStep('select-items');
       } else {
         // late_delivery needs no extra info, can check entitlement directly
         submitMutation.mutate();
@@ -322,7 +322,7 @@ export default function ResolvePage() {
             <div>
               <h2 className="text-base font-bold text-white">3. Provide Evidence Proof</h2>
               <p className="text-xs text-white/50 mt-0.5">
-                Upload photo or food packaging label to trigger instant algorithmic approval.
+                Provide clear picture or food packaging label to trigger instant algorithmic approval.
               </p>
             </div>
 
@@ -355,7 +355,7 @@ export default function ResolvePage() {
                       📷
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-white">Upload photo proof</p>
+                      <p className="text-sm font-semibold text-white">Upload photo</p>
                       <p className="text-xs text-white/50 mt-0.5">Drag and drop or browse files</p>
                     </div>
                     <span className="inline-block text-[10px] text-white/40 font-mono px-2 py-0.5 rounded bg-white/5">

@@ -112,7 +112,7 @@ export default function AgentPage() {
     <AppShell
       breadcrumbs={[
         { label: 'Support Operations' },
-        { label: 'Agent Console' },
+        { label: 'Console' },
       ]}
     >
       <div className="max-w-7xl mx-auto space-y-6">
@@ -148,7 +148,7 @@ export default function AgentPage() {
                   : 'bg-white/5 text-white/60 hover:text-white'
               }`}
             >
-              Case queue ({queueList.length})
+              Dispute Queue ({queueList.length})
             </button>
             <button
               onClick={() => setActiveTab('ledger')}
@@ -166,7 +166,7 @@ export default function AgentPage() {
         {/* Ops Metrics Ribbon */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-[#18181b] border border-white/10 rounded-xl p-4 shadow-sm">
-            <span className="text-[11px] text-white/40 uppercase tracking-wider font-semibold">Escalated cases</span>
+            <span className="text-[11px] text-white/40 uppercase tracking-wider font-semibold">Pending Review</span>
             <p className="text-2xl font-bold font-mono text-amber-400 mt-1">{queueList.length}</p>
             <span className="text-[10px] text-white/40">Awaiting human sign-off</span>
           </div>

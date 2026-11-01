@@ -102,7 +102,7 @@ export function AppShell({ children, breadcrumbs }: AppShellProps) {
   const agentNav: NavItem[] = [
     { label: 'Ops Overview', href: '/agent', icon: Home },
     { label: 'Open Cases', href: '/agent/open', icon: Inbox },
-    { label: 'Escalated Cases', href: '/agent/escalated', icon: AlertCircle, badge: 'Priority', badgeColor: 'bg-rose-100 text-rose-700' },
+    { label: 'Priority Escalations', href: '/agent/escalated', icon: AlertCircle, badge: 'High SLA', badgeColor: 'bg-rose-100 text-rose-700' },
     { label: 'Case History', href: '/agent/history', icon: FileText },
     { label: 'Recovery Ledger', href: '/agent/ledger', icon: BookOpen, badge: 'Immutable', badgeColor: 'bg-purple-100 text-purple-700' },
   ];
