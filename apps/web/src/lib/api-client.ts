@@ -221,7 +221,15 @@ export const partnersApi = {
 // ── Simulator ─────────────────────────────────────────────────────────────────
 export const simApi = {
   injectFault: (orderId: string, kind: string, token: string) =>
-    request<{ ok: boolean }>(`/sim/${orderId}/fault`, {
+    request<{
+      ok: boolean;
+      healthState?: any;
+      rescueOffered?: boolean;
+      rescueCaseId?: string;
+      rescueOptions?: any[];
+      etaAt?: string;
+      message?: string;
+    }>(`/sim/${orderId}/fault`, {
       method: 'POST',
       body: JSON.stringify({ kind }),
       token,

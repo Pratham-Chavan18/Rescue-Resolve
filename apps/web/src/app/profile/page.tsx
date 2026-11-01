@@ -1,9 +1,21 @@
 'use client';
 
+import React from 'react';
 import { useAuthStore } from '@/store/auth';
 import { AppShell } from '@/components/AppShell';
 import { formatRupees } from '@/lib/format';
 import { useRouter } from 'next/navigation';
+import {
+  User,
+  Wallet,
+  MapPin,
+  LogOut,
+  ShieldCheck,
+  CreditCard,
+  Building,
+  CheckCircle2,
+  Plus,
+} from 'lucide-react';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -23,19 +35,19 @@ export default function ProfilePage() {
     >
       <div className="max-w-4xl mx-auto space-y-6">
         {/* Profile Header */}
-        <div className="bg-[#18181b] border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="p-6 rounded-lg bg-white border border-[#E9E9EB] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl bg-orange-600/20 border border-orange-500/30 flex items-center justify-center text-2xl font-bold text-orange-400">
+            <div className="w-14 h-14 rounded-lg bg-[#FFF3E8] border border-[#FC8019]/30 flex items-center justify-center text-xl font-bold text-[#FC8019]">
               {user?.name?.[0] || 'C'}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold text-white">{user?.name || 'Customer Demo'}</h1>
-                <span className="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                <h1 className="text-xl font-bold text-[#282C3F]">{user?.name || 'Customer Demo'}</h1>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-[#FFF3E8] text-[#FC8019] border border-[#FC8019]/20">
                   {user?.role || 'customer'}
                 </span>
               </div>
-              <p className="text-xs text-white/50 mt-1">Phone: {(user as any)?.phone || '+91 90000 00001'} · Member since 2024</p>
+              <p className="text-xs text-[#686B78] mt-1">Phone: {(user as any)?.phone || '+91 90000 00001'} · Protected by Swiggy Unified Recovery</p>
             </div>
           </div>
 
@@ -44,75 +56,86 @@ export default function ProfilePage() {
               clearAuth();
               router.push('/');
             }}
-            className="px-4 py-2 rounded-xl border border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 font-semibold text-xs transition self-start sm:self-auto"
+            className="btn-secondary !text-[#D7263D] !border-[#D7263D]/30 hover:!bg-[#FDECEF] !py-2 !px-3.5 text-xs font-semibold flex items-center gap-1.5 self-start sm:self-auto"
           >
+            <LogOut size={14} />
             Sign Out
           </button>
         </div>
 
         {/* Swiggy Wallet Card */}
-        <div className="bg-gradient-to-br from-[#1c1c20] via-[#18181b] to-[#121214] border border-white/10 rounded-2xl p-6 shadow-xl">
-          <div className="flex items-center justify-between pb-4 border-b border-white/10">
+        <div className="p-6 rounded-lg bg-white border border-[#E9E9EB] shadow-sm space-y-6">
+          <div className="flex items-center justify-between pb-4 border-b border-[#E9E9EB]">
             <div className="flex items-center gap-2.5">
-              <span className="text-xl">💳</span>
+              <span className="p-2 rounded-lg bg-[#FFF3E8] text-[#FC8019]">
+                <Wallet size={20} />
+              </span>
               <div>
-                <h2 className="text-base font-bold text-white">Swiggy Unified Wallet</h2>
-                <p className="text-xs text-white/40">Includes instant Rescue compensations & Resolve credits</p>
+                <h2 className="text-base font-bold text-[#282C3F]">Swiggy Unified Recovery Wallet</h2>
+                <p className="text-xs text-[#686B78]">Instant deposits from Rescue delay compensations and Resolve settlements</p>
               </div>
             </div>
-            <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full border border-emerald-500/20">
-              Active & Protected
+            <span className="text-xs font-bold text-[#1BA672] bg-[#EAF7F1] px-2.5 py-1 rounded-full border border-[#1BA672]/20 flex items-center gap-1">
+              <ShieldCheck size={14} />
+              Active
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 my-6">
-            <div>
-              <span className="text-xs text-white/40 uppercase tracking-wider">Available Balance</span>
-              <p className="text-3xl font-bold font-mono text-emerald-400 mt-1">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="p-4 rounded-lg bg-[#F7F7F9] border border-[#E9E9EB] space-y-1">
+              <span className="text-xs text-[#686B78] uppercase tracking-wider font-semibold">Available Balance</span>
+              <p className="text-2xl font-bold font-mono text-[#1BA672]">
                 {formatRupees(12500)}
               </p>
-              <span className="text-[11px] text-white/40 mt-1 block">Valid across food & Instamart</span>
+              <span className="text-[11px] text-[#686B78] block">Usable immediately on food &amp; Instamart</span>
             </div>
 
-            <div>
-              <span className="text-xs text-white/40 uppercase tracking-wider">30-Day Recovery Inflow</span>
-              <p className="text-2xl font-bold font-mono text-white mt-1">
+            <div className="p-4 rounded-lg bg-[#F7F7F9] border border-[#E9E9EB] space-y-1">
+              <span className="text-xs text-[#686B78] uppercase tracking-wider font-semibold">30-Day Recovery Inflow</span>
+              <p className="text-2xl font-bold font-mono text-[#282C3F]">
                 {formatRupees(50500)}
               </p>
-              <span className="text-[11px] text-emerald-400 mt-1 block">3 automated recovery settlements</span>
+              <span className="text-[11px] text-[#1BA672] font-semibold block">3 automated recovery settlements</span>
             </div>
 
-            <div>
-              <span className="text-xs text-white/40 uppercase tracking-wider">Default Payout Source</span>
-              <p className="text-sm font-semibold text-white mt-1">
-                HDFC Bank UPI (••• 4910)
+            <div className="p-4 rounded-lg bg-[#F7F7F9] border border-[#E9E9EB] space-y-1">
+              <span className="text-xs text-[#686B78] uppercase tracking-wider font-semibold">Default Payout Method</span>
+              <p className="text-sm font-bold text-[#282C3F] flex items-center gap-1.5 mt-1">
+                <CreditCard size={15} className="text-[#686B78]" />
+                HDFC UPI (••• 4910)
               </p>
-              <span className="text-[11px] text-white/40 mt-1 block">Direct bank refunds routed here</span>
+              <span className="text-[11px] text-[#686B78] block">Direct banking reversals routed here</span>
             </div>
           </div>
         </div>
 
         {/* Saved Addresses */}
-        <div className="bg-[#18181b] border border-white/10 rounded-2xl p-6 shadow-xl space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-white/10">
-            <h2 className="text-base font-bold text-white">Saved Delivery Addresses</h2>
-            <button className="text-xs text-orange-400 hover:text-orange-300 font-semibold">+ Add Address</button>
+        <div className="p-6 rounded-lg bg-white border border-[#E9E9EB] shadow-sm space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-[#E9E9EB]">
+            <div>
+              <h2 className="text-base font-bold text-[#282C3F]">Saved Delivery Locations</h2>
+              <p className="text-xs text-[#686B78] mt-0.5">Used for geofenced telemetry and ETA tracking</p>
+            </div>
+            <button className="text-xs font-bold text-[#FC8019] hover:underline flex items-center gap-1">
+              <Plus size={14} /> Add Address
+            </button>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {savedAddresses.map((addr) => (
-              <div key={addr.id} className="p-4 rounded-xl border border-white/10 bg-white/[0.02] space-y-2">
+              <div key={addr.id} className="p-4 rounded-lg border border-[#E9E9EB] bg-[#F7F7F9] space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-white flex items-center gap-2">
-                    <span>📍</span> {addr.label}
+                  <span className="text-xs font-bold text-[#282C3F] flex items-center gap-1.5">
+                    <MapPin size={14} className="text-[#FC8019]" />
+                    {addr.label}
                   </span>
                   {addr.isDefault && (
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FFF3E8] text-[#FC8019] border border-[#FC8019]/20">
                       Default
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-white/60 leading-relaxed">{addr.address}</p>
+                <p className="text-xs text-[#686B78] leading-relaxed">{addr.address}</p>
               </div>
             ))}
           </div>

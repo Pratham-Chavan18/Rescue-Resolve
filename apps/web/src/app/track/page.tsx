@@ -10,6 +10,18 @@ import type { ServerEvent, HealthState, RescueOption } from '@swiggy/types';
 import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/AppShell';
 import Link from 'next/link';
+import {
+  Clock,
+  MapPin,
+  CheckCircle2,
+  AlertTriangle,
+  RotateCcw,
+  ShieldAlert,
+  ArrowRight,
+  Bike,
+  ChefHat,
+  Phone,
+} from 'lucide-react';
 
 const HEALTH_LABELS: Record<HealthState, string> = {
   on_track: 'On track',
@@ -20,23 +32,23 @@ const HEALTH_LABELS: Record<HealthState, string> = {
 };
 
 const HEALTH_PILL_CLASS: Record<HealthState, string> = {
-  on_track: 'pill-on-track',
-  at_risk: 'pill-at-risk',
-  failing: 'pill-failing',
-  recovered: 'pill-recovered',
-  failed: 'pill-failed',
+  on_track: 'bg-[#EAF7F1] text-[#1BA672] border border-[#1BA672]/30',
+  at_risk: 'bg-[#FFF6E5] text-[#C77400] border border-[#C77400]/30',
+  failing: 'bg-[#FDECEF] text-[#D7263D] border border-[#D7263D]/30',
+  recovered: 'bg-[#EAF7F1] text-[#1BA672] border border-[#1BA672]/30',
+  failed: 'bg-[#F7F7F9] text-[#686B78] border border-[#E9E9EB]',
 };
 
 const FAULT_OPTIONS = [
-  { kind: 'rider_stuck', label: '🛵 Rider stuck (>6 min)', desc: 'Simulates rider stopped at traffic/breakdown' },
-  { kind: 'restaurant_slow', label: '🍳 Kitchen slow (>8 min)', desc: 'Simulates prep overrun at restaurant' },
-  { kind: 'eta_slip', label: '⏱ ETA slip (+22 min)', desc: 'Simulates severe traffic delay recalculation' },
-  { kind: 'delivered_unconfirmed', label: '📦 Delivered unconfirmed', desc: 'Simulates drop-off without customer pin' },
+  { kind: 'rider_stuck', label: 'Rider stationary (>6 min)', desc: 'Simulates delivery rider stuck in traffic/breakdown' },
+  { kind: 'restaurant_slow', label: 'Kitchen delay (>8 min)', desc: 'Simulates prep overrun at restaurant' },
+  { kind: 'eta_slip', label: 'ETA overrun (+22 min)', desc: 'Simulates severe recalculated traffic overrun' },
+  { kind: 'delivered_unconfirmed', label: 'Delivered unconfirmed', desc: 'Simulates drop-off without delivery handshake' },
 ];
 
 export default function TrackPage() {
   const router = useRouter();
-  const { token, user } = useAuthStore();
+  const { token } = useAuthStore();
   const qc = useQueryClient();
 
   const [healthState, setHealthState] = useState<HealthState | null>(null);
@@ -98,13 +110,25 @@ export default function TrackPage() {
         ? `Full refund of ${formatRupees(option.refundAmount ?? 0)} initiated to original source.`
         : 'Replacement restaurant order placed and priority-routed!',
     );
+    qc.invalidateQueries({ queryKey: ['my-order'] });
   }
 
   async function injectFault(kind: string) {
-    if (!order?.id || !token) return;
+    if (!order || !token) return;
     setSimLoading(kind);
     try {
-      await simApi.injectFault(order.id, kind, token);
+      const res = await simApi.injectFault(order.id, kind, token);
+      if (res.rescueOffered && res.rescueOptions && res.rescueCaseId) {
+        setRescueCase({ caseId: res.rescueCaseId, options: res.rescueOptions });
+        setChoiceMade(false);
+      }
+      if (res.healthState) {
+        setHealthState(res.healthState);
+      }
+      if (res.etaAt !== undefined) {
+        setEtaAt(res.etaAt ?? null);
+      }
+      qc.invalidateQueries({ queryKey: ['my-order'] });
     } finally {
       setSimLoading(null);
     }
@@ -117,8 +141,8 @@ export default function TrackPage() {
       await simApi.reset(token);
       setRescueCase(null);
       setChoiceMade(false);
-      setHealthState(null);
-      setNotification(null);
+      setHealthState('on_track');
+      setNotification('Demo order reset to clean initial state.');
       qc.invalidateQueries({ queryKey: ['my-order'] });
     } finally {
       setSimLoading(null);
@@ -157,14 +181,15 @@ export default function TrackPage() {
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Banner Alert if any */}
         {notification && (
-          <div className="p-4 rounded-xl flex items-center justify-between step-enter shadow-sm border border-emerald-500/30 bg-emerald-500/10 text-emerald-400">
-            <div className="flex items-center gap-3">
-              <span className="text-xl">✨</span>
+          <div className="p-4 rounded-lg flex items-center justify-between step-enter shadow-sm border border-[#1BA672]/30 bg-[#EAF7F1] text-[#1BA672]">
+            <div className="flex items-center gap-2.5">
+              <CheckCircle2 size={18} />
               <span className="font-semibold text-sm">{notification}</span>
             </div>
             <button
               onClick={() => setNotification(null)}
-              className="text-white/60 hover:text-white text-lg px-2"
+              className="text-[#1BA672] hover:opacity-75 text-base px-2"
+              aria-label="Dismiss notification"
             >
               ✕
             </button>
@@ -172,22 +197,22 @@ export default function TrackPage() {
         )}
 
         {/* Top Header Card */}
-        <div className="bg-[#18181b] border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+        <div className="bg-white border border-[#E9E9EB] rounded-lg p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-3 mb-1">
-              <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30 uppercase tracking-wider">
+            <div className="flex items-center gap-2.5 mb-1.5">
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-[#FFF3E8] text-[#FC8019] border border-[#FC8019]/30 uppercase tracking-wider">
                 Live Tracking
               </span>
-              <span className="text-xs text-white/40">ID: {order?.id || 'order-demo-live'}</span>
+              <span className="text-xs text-[#686B78] font-mono">ID: {order?.id || 'order-demo-live'}</span>
             </div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-[#282C3F] flex items-center gap-3">
               Your order
-              <span className={`text-xs uppercase tracking-wider px-3 py-1 rounded-full font-semibold ${HEALTH_PILL_CLASS[currentHealth]}`}>
+              <span className={`text-xs uppercase tracking-wider px-2.5 py-0.5 rounded-full font-bold ${HEALTH_PILL_CLASS[currentHealth]}`}>
                 {HEALTH_LABELS[currentHealth]}
               </span>
             </h1>
-            <p className="text-sm text-white/60 mt-1">
-              From <strong className="text-white">{order?.restaurant?.name || 'Meghana Foods (Indiranagar)'}</strong> · Contact: +91 98450 11223
+            <p className="text-xs text-[#686B78] mt-1">
+              From <strong className="text-[#282C3F]">{order?.restaurant?.name || 'Spice Garden (Indiranagar)'}</strong> · Contact: +91 98450 11223
             </p>
           </div>
 
@@ -195,21 +220,22 @@ export default function TrackPage() {
             <button
               id="resolve-nav-btn"
               onClick={() => router.push('/resolve')}
-              className="px-4 py-2.5 rounded-xl text-sm font-semibold border border-white/10 bg-white/5 hover:bg-white/10 text-white transition flex items-center gap-2"
+              className="btn-secondary !py-2.5 !px-4 text-xs font-semibold flex items-center gap-1.5"
             >
-              <span>🚨</span> Report issue
+              <span>Report issue</span>
             </button>
             <Link
               href="/rescue"
-              className="px-4 py-2.5 rounded-xl text-sm font-semibold bg-orange-600 hover:bg-orange-500 text-white shadow-lg shadow-orange-600/30 transition flex items-center gap-2"
+              className="btn-primary !py-2.5 !px-4 text-xs font-semibold flex items-center gap-1.5"
             >
-              <span>🛡️</span> Rescue Center
+              <ShieldAlert size={14} />
+              <span>Rescue Center</span>
             </Link>
           </div>
         </div>
 
         {isLoading ? (
-          <div className="bg-[#18181b] border border-white/10 rounded-2xl p-12 text-center text-white/50 animate-pulse">
+          <div className="bg-white border border-[#E9E9EB] rounded-lg p-12 text-center text-[#686B78] animate-pulse">
             Loading live order telemetry & rider route…
           </div>
         ) : (
@@ -217,17 +243,17 @@ export default function TrackPage() {
             {/* Left 2 Cols: Stepper, Map & Details */}
             <div className="lg:col-span-2 space-y-6">
               {/* Stepper Card */}
-              <div className="bg-[#18181b] border border-white/10 rounded-2xl p-6 shadow-xl">
-                <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-6">
+              <div className="bg-white border border-[#E9E9EB] rounded-lg p-6 shadow-sm">
+                <div className="flex items-center justify-between pb-4 border-b border-[#E9E9EB] mb-6">
                   <div>
-                    <span className="text-xs text-white/40 uppercase tracking-wider">Estimated Delivery</span>
-                    <p className="text-2xl font-bold text-white tracking-tight">
+                    <span className="text-[11px] text-[#686B78] uppercase tracking-wider block font-semibold">Estimated Delivery</span>
+                    <p className="text-2xl font-bold text-[#282C3F] tracking-tight">
                       {currentEta ? formatEta(currentEta) : 'Approx 22 mins'}
                     </p>
                   </div>
                   <div className="text-right">
-                    <span className="text-xs text-white/40 uppercase tracking-wider">Telemetry State</span>
-                    <p className={`text-sm font-semibold capitalize ${currentHealth === 'on_track' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                    <span className="text-[11px] text-[#686B78] uppercase tracking-wider block font-semibold">Telemetry State</span>
+                    <p className={`text-sm font-bold capitalize ${currentHealth === 'on_track' ? 'text-[#1BA672]' : 'text-[#C77400]'}`}>
                       {currentHealth.replace('_', ' ')}
                     </p>
                   </div>
@@ -238,90 +264,92 @@ export default function TrackPage() {
                   {statusSteps.map((step, idx) => (
                     <div key={step.key} className="flex flex-col items-center text-center">
                       <div
-                        className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs transition-all ${
+                        className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs transition-colors ${
                           step.done
-                            ? 'bg-orange-600 text-white ring-4 ring-orange-500/20'
-                            : 'bg-white/5 text-white/40 border border-white/10'
+                            ? 'bg-[#FC8019] text-white shadow-sm'
+                            : 'bg-[#F7F7F9] text-[#686B78] border border-[#E9E9EB]'
                         }`}
                       >
                         {step.done ? '✓' : idx + 1}
                       </div>
-                      <span className={`text-xs font-medium mt-2 leading-tight ${step.done ? 'text-white' : 'text-white/40'}`}>
+                      <span className={`text-xs font-semibold mt-2 leading-tight ${step.done ? 'text-[#282C3F]' : 'text-[#686B78]'}`}>
                         {step.label}
                       </span>
-                      <span className="text-[10px] text-white/30 mt-0.5">{step.time}</span>
+                      <span className="text-[10px] text-[#686B78] mt-0.5">{step.time}</span>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Simulated Map Visualizer */}
-              <div className="bg-[#18181b] border border-white/10 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+              <div className="bg-white border border-[#E9E9EB] rounded-lg p-6 shadow-sm relative overflow-hidden">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-                    <span className="text-xs font-semibold uppercase tracking-wider text-white/80">Live Delivery Radar</span>
+                    <span className="w-2 h-2 rounded-full bg-[#1BA672] animate-ping" />
+                    <span className="text-xs font-bold uppercase tracking-wider text-[#282C3F]">Live Delivery Radar</span>
                   </div>
-                  <span className="text-xs font-mono text-white/40">GPS: 12.9716° N, 77.5946° E</span>
+                  <span className="text-[11px] font-mono text-[#686B78]">GPS: 12.9716° N, 77.5946° E</span>
                 </div>
 
-                {/* Map Visual Canvas Mockup */}
-                <div className="h-64 rounded-xl bg-gradient-to-br from-[#121214] via-[#1a1a1e] to-[#121214] border border-white/5 p-4 relative flex flex-col justify-between">
-                  {/* Grid Lines Overlay */}
-                  <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
+                {/* Map Visual Canvas */}
+                <div className="h-64 rounded-lg bg-[#F7F7F9] border border-[#E9E9EB] p-4 relative flex flex-col justify-between overflow-hidden">
+                  {/* Subtle Grid Lines */}
+                  <div className="absolute inset-0 bg-[linear-gradient(to_right,#00000008_1px,transparent_1px),linear-gradient(to_bottom,#00000008_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none" />
 
                   {/* Route Polyline Simulation */}
                   <svg className="absolute inset-0 w-full h-full pointer-events-none" xmlns="http://www.w3.org/2000/svg">
                     <path
                       d="M 60 180 Q 200 90 400 130 T 650 80"
                       fill="none"
-                      stroke="rgba(249, 115, 22, 0.4)"
-                      strokeWidth="4"
+                      stroke="#FC8019"
+                      strokeWidth="3"
                       strokeDasharray="6 6"
-                      className="animate-pulse"
+                      className="opacity-70"
                     />
                   </svg>
 
                   {/* Top Restaurant Pin */}
-                  <div className="relative z-10 self-start bg-black/80 backdrop-blur-md px-3 py-2 rounded-xl border border-white/10 flex items-center gap-2 shadow-lg">
-                    <span className="text-base">🍳</span>
+                  <div className="relative z-10 self-start bg-white px-3 py-2 rounded-lg border border-[#E9E9EB] flex items-center gap-2 shadow-sm">
+                    <div className="w-6 h-6 rounded bg-[#FFF6E5] text-[#C77400] flex items-center justify-center text-xs">
+                      <ChefHat size={14} />
+                    </div>
                     <div>
-                      <p className="text-xs font-bold text-white">{order?.restaurant?.name || 'Meghana Foods'}</p>
-                      <p className="text-[10px] text-emerald-400">Order Dispatched</p>
+                      <p className="text-xs font-bold text-[#282C3F]">{order?.restaurant?.name || 'Spice Garden'}</p>
+                      <p className="text-[10px] text-[#1BA672] font-semibold">Order Dispatched</p>
                     </div>
                   </div>
 
                   {/* Center Rider Pin */}
-                  <div className="relative z-10 self-center bg-orange-600/90 text-white backdrop-blur-md px-3.5 py-2 rounded-xl border border-orange-400/30 flex items-center gap-2 shadow-xl animate-bounce">
-                    <span className="text-lg">🛵</span>
+                  <div className="relative z-10 self-center bg-[#FC8019] text-white px-3.5 py-2 rounded-lg flex items-center gap-2 shadow-md">
+                    <Bike size={16} />
                     <div>
                       <p className="text-xs font-bold leading-none">Ramesh Kumar</p>
-                      <p className="text-[10px] text-orange-200 mt-0.5">2.1 km away · 32 km/h</p>
+                      <p className="text-[10px] text-white/90 mt-0.5">2.1 km away · 32 km/h</p>
                     </div>
                   </div>
 
                   {/* Destination Pin */}
-                  <div className="relative z-10 self-end bg-black/80 backdrop-blur-md px-3 py-2 rounded-xl border border-white/10 flex items-center gap-2 shadow-lg">
-                    <span className="text-base">📍</span>
+                  <div className="relative z-10 self-end bg-white px-3 py-2 rounded-lg border border-[#E9E9EB] flex items-center gap-2 shadow-sm">
+                    <MapPin size={16} className="text-[#FC8019]" />
                     <div>
-                      <p className="text-xs font-bold text-white">Your Delivery Address</p>
-                      <p className="text-[10px] text-white/50">Flat 402, Green Glen Layout</p>
+                      <p className="text-xs font-bold text-[#282C3F]">Delivery Address</p>
+                      <p className="text-[10px] text-[#686B78]">14, Indiranagar, Bengaluru</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-3 mt-4 text-center">
-                  <div className="bg-white/5 border border-white/5 rounded-xl p-3">
-                    <span className="text-[11px] text-white/40 uppercase">Distance Left</span>
-                    <p className="text-sm font-semibold text-white mt-0.5">2.1 km</p>
+                  <div className="bg-[#F7F7F9] border border-[#E9E9EB] rounded-lg p-3">
+                    <span className="text-[10px] text-[#686B78] uppercase font-bold">Distance Left</span>
+                    <p className="text-sm font-bold text-[#282C3F] mt-0.5">2.1 km</p>
                   </div>
-                  <div className="bg-white/5 border border-white/5 rounded-xl p-3">
-                    <span className="text-[11px] text-white/40 uppercase">Rider Contact</span>
-                    <p className="text-sm font-semibold text-orange-400 mt-0.5">+91 91234 56789</p>
+                  <div className="bg-[#F7F7F9] border border-[#E9E9EB] rounded-lg p-3">
+                    <span className="text-[10px] text-[#686B78] uppercase font-bold">Rider Contact</span>
+                    <p className="text-sm font-bold text-[#FC8019] mt-0.5">+91 91234 56789</p>
                   </div>
-                  <div className="bg-white/5 border border-white/5 rounded-xl p-3">
-                    <span className="text-[11px] text-white/40 uppercase">Signal Health</span>
-                    <p className="text-sm font-semibold text-emerald-400 mt-0.5">Online (99.8%)</p>
+                  <div className="bg-[#F7F7F9] border border-[#E9E9EB] rounded-lg p-3">
+                    <span className="text-[10px] text-[#686B78] uppercase font-bold">Signal Health</span>
+                    <p className="text-sm font-bold text-[#1BA672] mt-0.5">Online (99.8%)</p>
                   </div>
                 </div>
               </div>
@@ -330,97 +358,97 @@ export default function TrackPage() {
             {/* Right Column: Order Items & Proactive Rescue / Sim */}
             <div className="space-y-6">
               {/* Order Items Card */}
-              <div className="bg-[#18181b] border border-white/10 rounded-2xl p-6 shadow-xl">
-                <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
-                  <h3 className="text-sm font-semibold uppercase tracking-wider text-white/70">Order Summary</h3>
-                  <span className="text-xs text-white/40">{order?.items?.length || 2} items</span>
+              <div className="bg-white border border-[#E9E9EB] rounded-lg p-6 shadow-sm">
+                <div className="flex items-center justify-between pb-3 border-b border-[#E9E9EB] mb-4">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#686B78]">Order Summary</h3>
+                  <span className="text-xs text-[#686B78] font-semibold">{order?.items?.length || 4} items</span>
                 </div>
 
                 <div className="space-y-3">
                   {order?.items?.map((item: any) => (
                     <div key={item.id} className="flex justify-between items-center py-1">
-                      <div className="flex items-center gap-2.5">
+                      <div className="flex items-center gap-2">
                         <span className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center text-[8px] font-bold ${
-                          item.isVeg ? 'border-emerald-500 text-emerald-500' : 'border-rose-500 text-rose-500'
+                          item.isVeg ? 'border-[#1BA672] text-[#1BA672]' : 'border-[#D7263D] text-[#D7263D]'
                         }`}>
                           ●
                         </span>
                         <div>
-                          <p className="text-sm font-medium text-white">{item.name}</p>
-                          <p className="text-xs text-white/40">Qty: {item.qty}</p>
+                          <p className="text-xs font-bold text-[#282C3F]">{item.name}</p>
+                          <p className="text-[11px] text-[#686B78]">Qty: {item.qty}</p>
                         </div>
                       </div>
-                      <span className="text-sm font-mono text-white/90">
+                      <span className="text-xs font-bold text-[#282C3F]">
                         {formatRupees(item.pricePaise * item.qty)}
                       </span>
                     </div>
                   ))}
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-white/10 space-y-2">
-                  <div className="flex justify-between text-xs text-white/60">
+                <div className="mt-4 pt-4 border-t border-[#E9E9EB] space-y-2">
+                  <div className="flex justify-between text-xs text-[#686B78]">
                     <span>Item Total</span>
-                    <span className="font-mono">{formatRupees((order?.totalPaise || 48000) - 4900)}</span>
+                    <span>{formatRupees((order?.totalPaise || 58500) - 4900)}</span>
                   </div>
-                  <div className="flex justify-between text-xs text-white/60">
-                    <span>Delivery & Packaging</span>
-                    <span className="font-mono">{formatRupees(4900)}</span>
+                  <div className="flex justify-between text-xs text-[#686B78]">
+                    <span>Delivery &amp; Packaging</span>
+                    <span>{formatRupees(4900)}</span>
                   </div>
-                  <div className="flex justify-between text-base font-bold text-white pt-2 border-t border-white/10">
-                    <span>Paid via UPI</span>
-                    <span className="font-mono text-emerald-400">{formatRupees(order?.totalPaise || 48000)}</span>
+                  <div className="flex justify-between text-sm font-bold text-[#282C3F] pt-2 border-t border-[#E9E9EB]">
+                    <span>Total Paid</span>
+                    <span className="text-[#1BA672]">{formatRupees(order?.totalPaise || 58500)}</span>
                   </div>
                 </div>
               </div>
 
               {/* Rescue Offered Card (If triggered) */}
               {rescueCase && !choiceMade && (
-                <div className="bg-gradient-to-b from-orange-950/40 via-[#1e1411] to-[#18181b] border-2 border-orange-500/50 rounded-2xl p-6 shadow-2xl step-enter">
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="text-2xl">⚠️</span>
+                <div className="bg-[#FFF3E8] border-2 border-[#FC8019] rounded-lg p-5 shadow-md step-enter">
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <ShieldAlert size={20} className="text-[#FC8019]" />
                     <div>
-                      <h3 className="text-base font-bold text-white">Swiggy Rescue Active</h3>
-                      <p className="text-xs text-orange-200/80">Automated SLA compensation options</p>
+                      <h3 className="text-sm font-bold text-[#282C3F]">Swiggy Rescue Active</h3>
+                      <p className="text-xs text-[#686B78]">Proactive delay compensation ready</p>
                     </div>
                   </div>
 
-                  <p className="text-xs text-white/70 mb-4 leading-relaxed">
+                  <p className="text-xs text-[#282C3F] mb-4 leading-relaxed">
                     Our sensors detected an abnormal delay exceeding our delivery guarantee. Choose your preferred recovery:
                   </p>
 
-                  <div className="space-y-3">
+                  <div className="space-y-2.5">
                     {rescueCase.options.map((option) => (
                       <button
                         key={option.kind}
                         id={`rescue-choice-${option.kind}`}
                         onClick={() => handleChoice(option)}
-                        className="w-full text-left p-4 rounded-xl border border-white/10 bg-white/5 hover:bg-orange-500/10 hover:border-orange-500/50 transition-all cursor-pointer group"
+                        className="w-full text-left p-3.5 rounded-lg border border-[#FC8019]/40 bg-white hover:bg-[#FFF6E5] transition-colors cursor-pointer group shadow-sm"
                       >
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-sm font-semibold text-white group-hover:text-orange-400 transition">
+                            <p className="text-xs font-bold text-[#282C3F] group-hover:text-[#FC8019] transition">
                               {option.kind === 'wait' && '⏳ Wait with Compensation Credit'}
                               {option.kind === 'replace' && '🔄 Replace with Nearby Kitchen'}
                               {option.kind === 'cancel' && '✕ Cancel Order & Full Source Refund'}
                             </p>
                             {option.creditAmount && (
-                              <p className="text-xs font-semibold text-emerald-400 mt-1">
+                              <p className="text-[11px] font-bold text-[#1BA672] mt-0.5">
                                 +{formatRupees(option.creditAmount)} credited instantly to Swiggy Wallet
                               </p>
                             )}
                             {option.refundAmount && (
-                              <p className="text-xs font-semibold text-rose-400 mt-1">
+                              <p className="text-[11px] font-bold text-[#D7263D] mt-0.5">
                                 {formatRupees(option.refundAmount)} back to original payment method
                               </p>
                             )}
                             {option.newEta && (
-                              <p className="text-xs text-white/50 mt-1">New estimated arrival: {formatEta(option.newEta)}</p>
+                              <p className="text-[11px] text-[#686B78] mt-0.5">New ETA: {formatEta(option.newEta)}</p>
                             )}
                             {option.priceDiffPaise !== undefined && (
-                              <p className="text-xs text-white/50 mt-1">{formatPriceDiff(option.priceDiffPaise)}</p>
+                              <p className="text-[11px] text-[#686B78] mt-0.5">{formatPriceDiff(option.priceDiffPaise)}</p>
                             )}
                           </div>
-                          <span className="text-white/40 group-hover:text-orange-400 text-lg transition">→</span>
+                          <span className="text-[#686B78] group-hover:text-[#FC8019] font-bold">→</span>
                         </div>
                       </button>
                     ))}
@@ -428,16 +456,13 @@ export default function TrackPage() {
                 </div>
               )}
 
-              {/* In-page Simulator Quick Controls (preserves test selectors #sim-fault-rider_stuck, etc.) */}
-              <div className="bg-[#18181b] border border-white/10 rounded-2xl p-6 shadow-xl">
-                <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base">🎮</span>
-                    <h3 className="text-xs font-bold uppercase tracking-wider text-white/80">Fault Simulator</h3>
-                  </div>
-                  <span className="text-[10px] text-orange-400 bg-orange-500/10 px-2 py-0.5 rounded border border-orange-500/20">Demo Harness</span>
+              {/* In-page Simulator Quick Controls */}
+              <div className="bg-white border border-[#E9E9EB] rounded-lg p-5 shadow-sm">
+                <div className="flex items-center justify-between pb-2.5 border-b border-[#E9E9EB] mb-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#686B78]">Fault Simulator</h3>
+                  <span className="text-[10px] text-[#FC8019] bg-[#FFF3E8] px-2 py-0.5 rounded font-bold">Demo Harness</span>
                 </div>
-                <p className="text-xs text-white/50 mb-3">
+                <p className="text-xs text-[#686B78] mb-3">
                   Inject telemetry faults into backend to trigger Swiggy Rescue SLA algorithms:
                 </p>
 
@@ -448,10 +473,10 @@ export default function TrackPage() {
                       id={`sim-fault-${f.kind}`}
                       onClick={() => injectFault(f.kind)}
                       disabled={!!simLoading}
-                      className="text-left px-3.5 py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 hover:border-orange-500/40 text-xs font-medium text-white transition disabled:opacity-50"
+                      className="text-left px-3.5 py-2 rounded-lg border border-[#E9E9EB] hover:bg-[#F7F7F9] hover:border-[#FC8019] text-xs font-medium text-[#282C3F] transition-colors disabled:opacity-50"
                     >
-                      <div className="font-semibold">{f.label}</div>
-                      <div className="text-[10px] text-white/40">{f.desc}</div>
+                      <div className="font-bold text-[#282C3F]">{f.label}</div>
+                      <div className="text-[10px] text-[#686B78]">{f.desc}</div>
                     </button>
                   ))}
 
@@ -459,9 +484,10 @@ export default function TrackPage() {
                     id="sim-reset-btn"
                     onClick={resetSim}
                     disabled={!!simLoading}
-                    className="mt-2 w-full py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-xs font-semibold text-white/70 hover:text-white transition"
+                    className="mt-2 w-full py-2.5 rounded-lg border border-[#E9E9EB] bg-white hover:bg-[#F7F7F9] text-xs font-bold text-[#282C3F] transition-colors flex items-center justify-center gap-1.5"
                   >
-                    {simLoading === 'reset' ? 'Resetting…' : '↺ Reset Demo Scenario'}
+                    <RotateCcw size={14} className={simLoading === 'reset' ? 'animate-spin' : ''} />
+                    <span>{simLoading === 'reset' ? 'Resetting…' : 'Reset Demo Scenario'}</span>
                   </button>
                 </div>
               </div>

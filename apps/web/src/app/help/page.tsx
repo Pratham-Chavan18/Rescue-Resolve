@@ -1,8 +1,20 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { AppShell } from '@/components/AppShell';
 import Link from 'next/link';
+import {
+  HelpCircle,
+  Zap,
+  Scale,
+  ShieldCheck,
+  ChevronDown,
+  ChevronUp,
+  AlertTriangle,
+  FileCheck2,
+  PhoneCall,
+  Clock,
+} from 'lucide-react';
 
 export default function HelpPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
@@ -38,54 +50,71 @@ export default function HelpPage() {
       ]}
     >
       <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="bg-[#18181b] border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Help & Recovery SLA Policies</h1>
-            <p className="text-xs text-white/50 mt-1">
-              Transparent guarantees, algorithmic recovery rules, and resolution assistance.
+        {/* Header Card */}
+        <div className="p-6 rounded-lg bg-white border border-[#E9E9EB] shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <span className="p-2 rounded-lg bg-[#FFF3E8] text-[#FC8019]">
+                <HelpCircle size={20} />
+              </span>
+              <h1 className="text-xl font-bold text-[#282C3F]">Help &amp; Recovery SLA Policies</h1>
+              <span className="text-xs px-2.5 py-0.5 rounded-full font-bold bg-[#FFF3E8] text-[#FC8019] border border-[#FC8019]/20">
+                Transparent Guarantees
+              </span>
+            </div>
+            <p className="text-xs text-[#686B78] max-w-2xl">
+              Understand our mathematical recovery algorithms, proactive delay detection rules, and instant dispute resolution terms.
             </p>
           </div>
+
           <Link
             href="/resolve"
-            className="px-4 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-xs transition shadow-lg shadow-orange-600/30 flex items-center gap-2 self-start sm:self-auto"
+            className="btn-primary !py-2.5 !px-4 text-xs font-bold flex items-center gap-2 self-start sm:self-auto"
           >
-            <span>🚨</span> Dispute an Order
+            <span>🚨</span>
+            <span>Dispute an Order</span>
           </Link>
         </div>
 
         {/* SLA Guarantee Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-[#18181b] border border-white/10 rounded-2xl p-5 shadow-lg">
-            <span className="text-2xl mb-2 block">⚡</span>
-            <h2 className="text-sm font-bold text-white">Swiggy Rescue SLA</h2>
-            <p className="text-xs text-white/60 mt-1.5 leading-relaxed">
+          <div className="p-5 rounded-lg bg-white border border-[#E9E9EB] shadow-sm space-y-2">
+            <div className="w-9 h-9 rounded-lg bg-[#FFF3E8] text-[#FC8019] flex items-center justify-center">
+              <Zap size={18} />
+            </div>
+            <h2 className="text-sm font-bold text-[#282C3F]">Swiggy Rescue SLA</h2>
+            <p className="text-xs text-[#686B78] leading-relaxed">
               Detects in-flight delays before food is delivered. Offers choice of Wait Credit, Kitchen Replacement, or Full Cancellation.
             </p>
           </div>
 
-          <div className="bg-[#18181b] border border-white/10 rounded-2xl p-5 shadow-lg">
-            <span className="text-2xl mb-2 block">⚖️</span>
-            <h2 className="text-sm font-bold text-white">FairnessEngine Guarantee</h2>
-            <p className="text-xs text-white/60 mt-1.5 leading-relaxed">
-              Zero subjective bot friction. Mathematical entitlement rules are applied deterministically in milliseconds.
+          <div className="p-5 rounded-lg bg-white border border-[#E9E9EB] shadow-sm space-y-2">
+            <div className="w-9 h-9 rounded-lg bg-[#EAF7F1] text-[#1BA672] flex items-center justify-center">
+              <Scale size={18} />
+            </div>
+            <h2 className="text-sm font-bold text-[#282C3F]">FairnessEngine Guarantee</h2>
+            <p className="text-xs text-[#686B78] leading-relaxed">
+              Zero subjective bot friction. Mathematical entitlement rules are applied deterministically in milliseconds without endless chats.
             </p>
           </div>
 
-          <div className="bg-[#18181b] border border-white/10 rounded-2xl p-5 shadow-lg">
-            <span className="text-2xl mb-2 block">🔒</span>
-            <h2 className="text-sm font-bold text-white">Immutable Ledger</h2>
-            <p className="text-xs text-white/60 mt-1.5 leading-relaxed">
+          <div className="p-5 rounded-lg bg-white border border-[#E9E9EB] shadow-sm space-y-2">
+            <div className="w-9 h-9 rounded-lg bg-[#F7F7F9] text-[#282C3F] flex items-center justify-center">
+              <ShieldCheck size={18} />
+            </div>
+            <h2 className="text-sm font-bold text-[#282C3F]">Immutable Ledger</h2>
+            <p className="text-xs text-[#686B78] leading-relaxed">
               Every refund and credit is permanently written to an append-only PostgreSQL ledger. Never revoked or deducted arbitrarily.
             </p>
           </div>
         </div>
 
         {/* FAQ Accordion */}
-        <div className="bg-[#18181b] border border-white/10 rounded-2xl p-6 shadow-xl space-y-4">
-          <h2 className="text-base font-bold text-white pb-3 border-b border-white/10">
-            Frequently Asked Questions
-          </h2>
+        <div className="rounded-lg bg-white border border-[#E9E9EB] shadow-sm p-6 space-y-4">
+          <div className="border-b border-[#E9E9EB] pb-3">
+            <h2 className="text-base font-bold text-[#282C3F]">Frequently Asked Questions</h2>
+            <p className="text-xs text-[#686B78] mt-0.5">Everything you need to know about proactive orders and dispute recovery</p>
+          </div>
 
           <div className="space-y-3">
             {faqs.map((faq, idx) => {
@@ -93,17 +122,20 @@ export default function HelpPage() {
               return (
                 <div
                   key={idx}
-                  className="rounded-xl border border-white/5 bg-white/[0.02] overflow-hidden transition"
+                  className="rounded-lg border border-[#E9E9EB] bg-[#F7F7F9] overflow-hidden transition-colors"
                 >
                   <button
                     onClick={() => setOpenFaq(isOpen ? null : idx)}
-                    className="w-full text-left p-4 flex items-center justify-between text-sm font-semibold text-white hover:text-orange-400 transition"
+                    className="w-full text-left p-4 flex items-center justify-between text-xs font-bold text-[#282C3F] hover:text-[#FC8019] transition-colors"
+                    aria-expanded={isOpen}
                   >
                     <span>{faq.q}</span>
-                    <span className="text-white/40 text-lg">{isOpen ? '−' : '+'}</span>
+                    <span className="text-[#686B78]">
+                      {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </span>
                   </button>
                   {isOpen && (
-                    <div className="px-4 pb-4 text-xs text-white/60 leading-relaxed border-t border-white/5 pt-3">
+                    <div className="px-4 pb-4 pt-1 text-xs text-[#686B78] leading-relaxed border-t border-[#E9E9EB] bg-white">
                       {faq.a}
                     </div>
                   )}

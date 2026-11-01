@@ -13,4 +13,4 @@ playwright-report/
 *.tsbuildinfo
 .agents/
 docs/
-
+scratch/

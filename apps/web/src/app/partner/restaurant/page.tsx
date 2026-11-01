@@ -1,21 +1,39 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, Suspense } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/auth';
 import { partnersApi } from '@/lib/api-client';
-import { formatRupees, formatEta } from '@/lib/format';
+import { formatRupees } from '@/lib/format';
 import { useGlobalSocket } from '@/lib/socket';
 import type { ServerEvent } from '@swiggy/types';
 import { AppShell } from '@/components/AppShell';
+import {
+  ChefHat,
+  Bell,
+  CheckCircle2,
+  AlertCircle,
+  TrendingUp,
+  Clock,
+  Package,
+} from 'lucide-react';
 
-export default function RestaurantPage() {
+function RestaurantContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { token, user } = useAuthStore();
   const qc = useQueryClient();
+
+  const tabParam = searchParams.get('tab');
   const [activeTab, setActiveTab] = useState<'incoming' | 'active' | 'ready' | 'issues' | 'performance'>('incoming');
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (tabParam && ['incoming', 'active', 'ready', 'issues', 'performance'].includes(tabParam)) {
+      setActiveTab(tabParam as any);
+    }
+  }, [tabParam]);
 
   useEffect(() => {
     if (!token || user?.role !== 'restaurant') {
@@ -84,85 +102,85 @@ export default function RestaurantPage() {
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Banner Alert */}
         {actionSuccess && (
-          <div className="p-4 rounded-xl flex items-center justify-between border border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-sm">
+          <div className="p-4 rounded-lg flex items-center justify-between border border-[#1BA672]/30 bg-[#EAF7F1] text-[#1BA672] text-xs font-bold shadow-sm">
             <span>✨ {actionSuccess}</span>
-            <button onClick={() => setActionSuccess(null)} className="text-white/60 hover:text-white">✕</button>
+            <button onClick={() => setActionSuccess(null)} className="text-[#1BA672] hover:opacity-80">✕</button>
           </div>
         )}
 
         {/* Restaurant Header */}
-        <div className="bg-[#18181b] border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="bg-white border border-[#E9E9EB] rounded-lg p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-3xl">
+            <div className="w-12 h-12 rounded-lg bg-[#FFF6E5] text-[#C77400] flex items-center justify-center text-2xl font-bold">
               🍳
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold text-white">{user?.name || 'Meghana Foods (Indiranagar)'}</h1>
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
+                <h1 className="text-xl font-bold text-[#282C3F]">{user?.name || 'Spice Garden (Indiranagar)'}</h1>
+                <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#EAF7F1] text-[#1BA672] border border-[#1BA672]/20 font-bold">
                   Online · Accepting Orders
                 </span>
               </div>
-              <p className="text-xs text-white/50 mt-1">Outlet ID: REST-BLR-0419 · Average Prep Time: 14 mins</p>
+              <p className="text-xs text-[#686B78] mt-0.5">Outlet ID: REST-BLR-0419 · Average Prep Time: 14 mins</p>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-center">
-              <span className="text-[10px] text-white/40 uppercase block">Kitchen Load</span>
-              <span className="text-sm font-bold text-amber-400">Normal (62%)</span>
+            <div className="bg-[#F7F7F9] border border-[#E9E9EB] px-4 py-2 rounded-lg text-center">
+              <span className="text-[10px] text-[#686B78] uppercase font-bold block">Kitchen Load</span>
+              <span className="text-sm font-bold text-[#C77400]">Normal (62%)</span>
             </div>
           </div>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex border-b border-white/10 gap-2 overflow-x-auto pb-1">
+        <div className="flex border-b border-[#E9E9EB] gap-2 overflow-x-auto pb-1">
           <button
             onClick={() => setActiveTab('incoming')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2 whitespace-nowrap ${
+            className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 whitespace-nowrap ${
               activeTab === 'incoming'
-                ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/30'
-                : 'text-white/60 hover:text-white hover:bg-white/5'
+                ? 'bg-[#FC8019] text-white shadow-sm'
+                : 'text-[#686B78] hover:text-[#282C3F] hover:bg-[#F7F7F9]'
             }`}
           >
             <span>🛎️</span> Incoming Orders ({incomingOrders.length})
           </button>
           <button
             onClick={() => setActiveTab('active')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2 whitespace-nowrap ${
+            className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 whitespace-nowrap ${
               activeTab === 'active'
-                ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/30'
-                : 'text-white/60 hover:text-white hover:bg-white/5'
+                ? 'bg-[#FC8019] text-white shadow-sm'
+                : 'text-[#686B78] hover:text-[#282C3F] hover:bg-[#F7F7F9]'
             }`}
           >
             <span>🔥</span> Active Kitchen ({activeOrders.length})
           </button>
           <button
             onClick={() => setActiveTab('ready')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2 whitespace-nowrap ${
+            className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 whitespace-nowrap ${
               activeTab === 'ready'
-                ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/30'
-                : 'text-white/60 hover:text-white hover:bg-white/5'
+                ? 'bg-[#FC8019] text-white shadow-sm'
+                : 'text-[#686B78] hover:text-[#282C3F] hover:bg-[#F7F7F9]'
             }`}
           >
             <span>📦</span> Ready for Pickup ({readyOrders.length})
           </button>
           <button
             onClick={() => setActiveTab('issues')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2 whitespace-nowrap ${
+            className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 whitespace-nowrap ${
               activeTab === 'issues'
-                ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/30'
-                : 'text-white/60 hover:text-white hover:bg-white/5'
+                ? 'bg-[#FC8019] text-white shadow-sm'
+                : 'text-[#686B78] hover:text-[#282C3F] hover:bg-[#F7F7F9]'
             }`}
           >
             <span>🚨</span> Order Issues (0)
           </button>
           <button
             onClick={() => setActiveTab('performance')}
-            className={`px-4 py-2.5 rounded-xl text-xs font-semibold transition flex items-center gap-2 whitespace-nowrap ${
+            className={`px-4 py-2 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1.5 whitespace-nowrap ${
               activeTab === 'performance'
-                ? 'bg-orange-600 text-white shadow-lg shadow-orange-600/30'
-                : 'text-white/60 hover:text-white hover:bg-white/5'
+                ? 'bg-[#FC8019] text-white shadow-sm'
+                : 'text-[#686B78] hover:text-[#282C3F] hover:bg-[#F7F7F9]'
             }`}
           >
             <span>📈</span> Kitchen SLA
@@ -171,7 +189,7 @@ export default function RestaurantPage() {
 
         {/* Content based on Active Tab */}
         {isLoading ? (
-          <div className="bg-[#18181b] border border-white/10 rounded-2xl p-12 text-center text-white/40">
+          <div className="bg-white border border-[#E9E9EB] rounded-lg p-12 text-center text-[#686B78]">
             Fetching kitchen tickets and live order feed…
           </div>
         ) : (
@@ -180,36 +198,36 @@ export default function RestaurantPage() {
             {activeTab === 'incoming' && (
               <div className="space-y-4">
                 {incomingOrders.length === 0 ? (
-                  <div className="bg-[#18181b] border border-white/10 rounded-2xl p-10 text-center text-white/50">
-                    <p className="text-3xl mb-2">✨</p>
-                    <p className="text-sm font-semibold text-white">No pending orders to accept</p>
-                    <p className="text-xs text-white/40 mt-1">New incoming customer orders will chime here in real-time.</p>
+                  <div className="bg-white border border-[#E9E9EB] rounded-lg p-10 text-center text-[#686B78]">
+                    <p className="text-2xl mb-1">✨</p>
+                    <p className="text-sm font-bold text-[#282C3F]">No pending orders to accept</p>
+                    <p className="text-xs text-[#686B78] mt-1">New incoming customer orders will chime here in real-time.</p>
                   </div>
                 ) : (
                   incomingOrders.map((order) => (
-                    <div key={order.id} className="bg-[#18181b] border border-orange-500/30 rounded-2xl p-6 shadow-xl space-y-4">
-                      <div className="flex items-center justify-between pb-3 border-b border-white/10">
+                    <div key={order.id} className="bg-white border border-[#FC8019]/40 rounded-lg p-5 shadow-sm space-y-4">
+                      <div className="flex items-center justify-between pb-3 border-b border-[#E9E9EB]">
                         <div>
-                          <span className="text-xs text-orange-400 font-semibold uppercase tracking-wider">New Order Received</span>
-                          <h3 className="text-lg font-bold text-white mt-0.5">Order #{order.id.slice(0, 8)}</h3>
+                          <span className="text-[10px] text-[#FC8019] font-bold uppercase tracking-wider">New Order Received</span>
+                          <h2 className="text-base font-bold text-[#282C3F] mt-0.5">Order #{order.id.slice(0, 8)}</h2>
                         </div>
-                        <span className="text-sm font-mono font-bold text-emerald-400">{formatRupees(order.totalPaise)}</span>
+                        <span className="text-sm font-bold text-[#1BA672]">{formatRupees(order.totalPaise)}</span>
                       </div>
 
-                      <div className="space-y-2">
+                      <div className="space-y-1.5">
                         {order.items?.map((item: any) => (
-                          <div key={item.id} className="flex justify-between text-xs text-white/80">
+                          <div key={item.id} className="flex justify-between text-xs text-[#282C3F]">
                             <span>{item.name} × {item.qty}</span>
-                            <span className="font-mono">{formatRupees(item.pricePaise * item.qty)}</span>
+                            <span className="font-bold">{formatRupees(item.pricePaise * item.qty)}</span>
                           </div>
                         ))}
                       </div>
 
-                      <div className="pt-3 border-t border-white/10 flex justify-end gap-3">
+                      <div className="pt-3 border-t border-[#E9E9EB] flex justify-end gap-3">
                         <button
                           onClick={() => acceptOrderMutation.mutate(order.id)}
                           disabled={acceptOrderMutation.isPending}
-                          className="px-6 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-xs shadow-lg shadow-orange-600/30 transition"
+                          className="btn-primary text-xs font-bold"
                         >
                           {acceptOrderMutation.isPending ? 'Accepting…' : 'Accept Order & Start Prep →'}
                         </button>
@@ -224,38 +242,37 @@ export default function RestaurantPage() {
             {activeTab === 'active' && (
               <div className="space-y-4">
                 {activeOrders.length === 0 && incomingOrders.length === 0 && (
-                  <div className="bg-[#18181b] border border-white/10 rounded-2xl p-10 text-center text-white/50">
-                    <p className="text-3xl mb-2">🍽️</p>
-                    <p className="text-sm font-semibold text-white">Kitchen queue is clear</p>
-                    <p className="text-xs text-white/40 mt-1">All orders are currently dispatched or delivered.</p>
+                  <div className="bg-white border border-[#E9E9EB] rounded-lg p-10 text-center text-[#686B78]">
+                    <p className="text-2xl mb-1">🍽️</p>
+                    <p className="text-sm font-bold text-[#282C3F]">Kitchen queue is clear</p>
+                    <p className="text-xs text-[#686B78] mt-1">All orders are currently dispatched or delivered.</p>
                   </div>
                 )}
 
-                {/* Show any orders in kitchen */}
                 {(activeOrders.length > 0 ? activeOrders : orderList).map((order) => (
-                  <div key={order.id} className="bg-[#18181b] border border-white/10 rounded-2xl p-6 shadow-xl space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-white/10">
+                  <div key={order.id} className="bg-white border border-[#E9E9EB] rounded-lg p-5 shadow-sm space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#E9E9EB]">
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="text-base font-bold text-white">Ticket #{order.id.slice(0, 8)}</h3>
-                          <span className={`text-[10px] uppercase font-mono px-2 py-0.5 rounded-full ${
+                          <h2 className="text-base font-bold text-[#282C3F]">Ticket #{order.id.slice(0, 8)}</h2>
+                          <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded ${
                             order.health?.state === 'failing'
-                              ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                              ? 'bg-[#FDECEF] text-[#D7263D] border border-[#D7263D]/20'
                               : order.health?.state === 'at_risk'
-                              ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                              : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                              ? 'bg-[#FFF6E5] text-[#C77400] border border-[#C77400]/20'
+                              : 'bg-[#EAF7F1] text-[#1BA672] border border-[#1BA672]/20'
                           }`}>
                             {order.health?.state ? order.health.state.replace('_', ' ') : 'On Track'}
                           </span>
                         </div>
-                        <p className="text-xs text-white/50 mt-0.5">Assigned Rider: Ramesh Kumar · Customer: Demo User</p>
+                        <p className="text-xs text-[#686B78] mt-0.5">Assigned Rider: Ramesh Kumar · Customer: Arjun Mehta</p>
                       </div>
 
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => markReadyMutation.mutate(order.id)}
                           disabled={markReadyMutation.isPending}
-                          className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs transition shadow-lg shadow-emerald-600/30"
+                          className="btn-primary !bg-[#1BA672] hover:!bg-[#158057] text-xs font-bold"
                         >
                           ✓ Mark Food Ready for Pickup
                         </button>
@@ -263,31 +280,31 @@ export default function RestaurantPage() {
                     </div>
 
                     {/* Order items */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-white/[0.02] p-3 rounded-xl border border-white/5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-[#F7F7F9] p-3 rounded-lg border border-[#E9E9EB]">
                       {order.items?.map((item: any) => (
                         <div key={item.id} className="flex items-center justify-between text-xs py-1 px-2">
-                          <span className="text-white font-medium">● {item.name} × {item.qty}</span>
-                          <span className="text-white/40 font-mono">{formatRupees(item.pricePaise * item.qty)}</span>
+                          <span className="text-[#282C3F] font-medium">● {item.name} × {item.qty}</span>
+                          <span className="text-[#686B78] font-bold">{formatRupees(item.pricePaise * item.qty)}</span>
                         </div>
                       ))}
                     </div>
 
                     {/* Risk warning & Packing adjustment */}
                     {(order.health?.state === 'at_risk' || order.health?.state === 'failing') && (
-                      <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between">
-                        <span>⚠️ Telemetry indicates kitchen prep overrun. Extend packing ETA to notify rider and prevent Rescue cancellation:</span>
+                      <div className="p-3 rounded-lg bg-[#FFF6E5] border border-[#C77400]/30 text-[#C77400] text-xs flex items-center justify-between font-medium">
+                        <span>⚠️ Telemetry indicates prep overrun. Extend packing ETA to notify rider and prevent Rescue cancellation:</span>
                       </div>
                     )}
 
                     <div className="flex items-center gap-2 pt-1">
-                      <span className="text-xs text-white/50 mr-2">Packing Time:</span>
+                      <span className="text-xs text-[#686B78] mr-2 font-medium">Extend Packing Time:</span>
                       {[10, 15, 20, 25].map((min) => (
                         <button
                           key={min}
                           id={`confirm-packing-${order.id}-${min}`}
                           onClick={() => confirmPackingMutation.mutate({ orderId: order.id, minutes: min })}
                           disabled={confirmPackingMutation.isPending}
-                          className="px-3 py-1.5 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 hover:border-orange-500/40 text-xs font-semibold text-white/80 transition"
+                          className="px-3 py-1.5 rounded-lg border border-[#E9E9EB] bg-white hover:bg-[#FFF3E8] hover:border-[#FC8019] text-xs font-bold text-[#282C3F] transition-colors"
                         >
                           +{min}m
                         </button>
@@ -301,17 +318,19 @@ export default function RestaurantPage() {
             {/* READY FOR PICKUP TAB */}
             {activeTab === 'ready' && (
               <div className="space-y-4">
-                <div className="bg-[#18181b] border border-white/10 rounded-2xl p-6 shadow-xl">
-                  <h3 className="text-sm font-bold text-white mb-2">Rider Dispatch Bay</h3>
-                  <p className="text-xs text-white/50 mb-4">
+                <div className="bg-white border border-[#E9E9EB] rounded-lg p-6 shadow-sm">
+                  <h3 className="text-sm font-bold text-[#282C3F] mb-1">Rider Dispatch Bay</h3>
+                  <p className="text-xs text-[#686B78] mb-4">
                     Orders bagged and waiting for rider pickup at the counter.
                   </p>
-                  <div className="p-4 rounded-xl border border-emerald-500/20 bg-emerald-500/5 flex items-center justify-between">
+                  <div className="p-4 rounded-lg border border-[#1BA672]/30 bg-[#EAF7F1] flex items-center justify-between">
                     <div>
-                      <p className="text-sm font-semibold text-white">Order #order-demo-live (Bag #4)</p>
-                      <p className="text-xs text-emerald-400">Rider arrived at outlet · Ready for handoff</p>
+                      <p className="text-sm font-bold text-[#282C3F]">Order #order-demo-live (Bag #4)</p>
+                      <p className="text-xs text-[#1BA672] font-semibold">Rider arrived at outlet · Ready for handoff</p>
                     </div>
-                    <span className="text-xs font-mono font-bold text-white">OTP: 4892</span>
+                    <span className="text-xs font-mono font-bold text-[#282C3F] bg-white px-2 py-1 rounded border border-[#E9E9EB]">
+                      OTP: 4892
+                    </span>
                   </div>
                 </div>
               </div>
@@ -320,20 +339,20 @@ export default function RestaurantPage() {
             {/* PERFORMANCE TAB */}
             {activeTab === 'performance' && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-[#18181b] border border-white/10 rounded-2xl p-5 shadow-lg">
-                  <span className="text-xs text-white/40 uppercase tracking-wider">Kitchen SLA Compliance</span>
-                  <p className="text-2xl font-bold font-mono text-emerald-400 mt-1">98.4%</p>
-                  <span className="text-[11px] text-white/40 mt-1 block">Target threshold &gt;95%</span>
+                <div className="bg-white border border-[#E9E9EB] rounded-lg p-5 shadow-sm">
+                  <span className="text-[11px] text-[#686B78] uppercase tracking-wider font-bold">Kitchen SLA Compliance</span>
+                  <p className="text-2xl font-bold text-[#1BA672] mt-1">98.4%</p>
+                  <span className="text-[11px] text-[#686B78] mt-1 block">Target threshold &gt;95%</span>
                 </div>
-                <div className="bg-[#18181b] border border-white/10 rounded-2xl p-5 shadow-lg">
-                  <span className="text-xs text-white/40 uppercase tracking-wider">Avg Prep Time</span>
-                  <p className="text-2xl font-bold font-mono text-white mt-1">13.8 mins</p>
-                  <span className="text-[11px] text-emerald-400 mt-1 block">1.2 mins faster than zone avg</span>
+                <div className="bg-white border border-[#E9E9EB] rounded-lg p-5 shadow-sm">
+                  <span className="text-[11px] text-[#686B78] uppercase tracking-wider font-bold">Avg Prep Time</span>
+                  <p className="text-2xl font-bold text-[#282C3F] mt-1">13.8 mins</p>
+                  <span className="text-[11px] text-[#1BA672] mt-1 block font-semibold">1.2 mins faster than zone avg</span>
                 </div>
-                <div className="bg-[#18181b] border border-white/10 rounded-2xl p-5 shadow-lg">
-                  <span className="text-xs text-white/40 uppercase tracking-wider">Rescue Trigger Rate</span>
-                  <p className="text-2xl font-bold font-mono text-white mt-1">0.8%</p>
-                  <span className="text-[11px] text-white/40 mt-1 block">Low kitchen fault attribution</span>
+                <div className="bg-white border border-[#E9E9EB] rounded-lg p-5 shadow-sm">
+                  <span className="text-[11px] text-[#686B78] uppercase tracking-wider font-bold">Rescue Trigger Rate</span>
+                  <p className="text-2xl font-bold text-[#282C3F] mt-1">0.8%</p>
+                  <span className="text-[11px] text-[#686B78] mt-1 block">Low kitchen fault attribution</span>
                 </div>
               </div>
             )}
@@ -341,5 +360,13 @@ export default function RestaurantPage() {
         )}
       </div>
     </AppShell>
+  );
+}
+
+export default function RestaurantPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-xs text-[#686B78]">Loading kitchen console…</div>}>
+      <RestaurantContent />
+    </Suspense>
   );
 }

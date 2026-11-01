@@ -8,6 +8,18 @@ import { resolveApi, ordersApi } from '@/lib/api-client';
 import { formatRupees } from '@/lib/format';
 import type { IssueKind, FairnessDecision } from '@swiggy/types';
 import { AppShell } from '@/components/AppShell';
+import {
+  ArrowLeft,
+  Upload,
+  CheckCircle2,
+  AlertTriangle,
+  Scale,
+  ShieldCheck,
+  Camera,
+  FileCheck,
+  ChevronRight,
+  Headphones,
+} from 'lucide-react';
 
 const ISSUE_OPTIONS: { kind: IssueKind; label: string; emoji: string; desc: string; requiresPhoto: boolean }[] = [
   { kind: 'wrong_item', label: 'Wrong item delivered', emoji: '🔄', desc: 'Received a different dish or incorrect variant', requiresPhoto: true },
@@ -20,7 +32,7 @@ type Step = 'select-issue' | 'select-items' | 'evidence' | 'preview' | 'accepted
 
 export default function ResolvePage() {
   const router = useRouter();
-  const { token, user } = useAuthStore();
+  const { token } = useAuthStore();
 
   const [step, setStep] = useState<Step>('select-issue');
   const [selectedIssue, setSelectedIssue] = useState<IssueKind | null>(null);
@@ -39,8 +51,6 @@ export default function ResolvePage() {
     enabled: !!token,
   });
 
-  const activeOrder = allOrders;
-
   const createCaseMutation = useMutation({
     mutationFn: ({ issue }: { issue: IssueKind }) =>
       resolveApi.createCase(selectedOrderId, issue, token!),
@@ -51,7 +61,6 @@ export default function ResolvePage() {
       } else if (selectedIssue === 'missing_item') {
         setStep('select-items');
       } else {
-        // late_delivery needs no extra info, can check entitlement directly
         submitMutation.mutate();
       }
     },
@@ -135,12 +144,6 @@ export default function ResolvePage() {
     low: 'Flagged for Specialist Audit',
   };
 
-  const CONFIDENCE_COLORS: Record<string, string> = {
-    high: 'var(--ok)',
-    medium: 'var(--warn)',
-    low: 'var(--bad)',
-  };
-
   const demoItems = [
     { id: 'item-demo-biryani', name: 'Special Chicken Biryani (Family Pack)', pricePaise: 38000, isVeg: false },
     { id: 'item-demo-raita', name: 'Cucumber Onion Raita (Special)', pricePaise: 6000, isVeg: true },
@@ -156,7 +159,7 @@ export default function ResolvePage() {
     >
       <div className="max-w-3xl mx-auto space-y-6">
         {/* Header */}
-        <div className="bg-[#18181b] border border-white/10 rounded-2xl p-6 shadow-xl flex items-center justify-between">
+        <div className="bg-white border border-[#E9E9EB] rounded-lg p-6 shadow-sm flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               id="resolve-back-btn"
@@ -164,54 +167,55 @@ export default function ResolvePage() {
                 if (step === 'select-issue') router.push('/track');
                 else setStep('select-issue');
               }}
-              className="p-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white transition text-sm"
+              className="p-2 rounded-lg border border-[#E9E9EB] hover:bg-[#F7F7F9] text-[#282C3F] transition-colors text-sm"
+              aria-label="Back"
             >
-              ← Back
+              <ArrowLeft size={16} />
             </button>
             <div>
-              <h1 className="text-xl font-bold text-white">Report an issue</h1>
-              <p className="text-xs text-white/50">
-                Swiggy Resolve · FairnessEngine automated compensation & instant ledger credit
+              <h1 className="text-xl font-bold text-[#282C3F]">Report an issue</h1>
+              <p className="text-xs text-[#686B78]">
+                Swiggy Resolve · FairnessEngine automated compensation &amp; instant ledger credit
               </p>
             </div>
           </div>
 
           <div className="hidden sm:flex items-center gap-2">
-            <span className="text-xs px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-mono">
-              Pure TS Engine v1.4
+            <span className="text-xs px-2.5 py-1 rounded bg-[#EAF7F1] text-[#1BA672] border border-[#1BA672]/20 font-bold">
+              FairnessEngine v1.4
             </span>
           </div>
         </div>
 
         {error && (
-          <div className="p-4 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-400 text-sm flex items-center justify-between">
+          <div className="p-4 rounded-lg border border-[#D7263D]/30 bg-[#FDECEF] text-[#D7263D] text-xs font-semibold flex items-center justify-between">
             <span>{error}</span>
-            <button onClick={() => setError('')} className="text-rose-300 hover:text-white">✕</button>
+            <button onClick={() => setError('')} className="text-[#D7263D] hover:opacity-80">✕</button>
           </div>
         )}
 
         {/* Step 1: Select Issue */}
         {step === 'select-issue' && (
-          <div className="bg-[#18181b] border border-white/10 rounded-2xl p-6 shadow-xl space-y-6 step-enter">
+          <div className="bg-white border border-[#E9E9EB] rounded-lg p-6 shadow-sm space-y-6 step-enter">
             <div>
-              <h2 className="text-base font-bold text-white">1. Select Problem Category</h2>
-              <p className="text-xs text-white/50 mt-0.5">
+              <h2 className="text-base font-bold text-[#282C3F]">1. Select Problem Category</h2>
+              <p className="text-xs text-[#686B78] mt-0.5">
                 Our algorithmic engine evaluates your complaint against restaurant logs, rider GPS, and evidence.
               </p>
             </div>
 
             {/* Order Selector */}
-            <div className="p-4 rounded-xl border border-white/5 bg-white/[0.02]">
-              <label className="text-xs font-semibold text-white/60 uppercase tracking-wider block mb-2">
+            <div className="p-4 rounded-lg border border-[#E9E9EB] bg-[#F7F7F9]">
+              <label className="text-[11px] font-bold text-[#686B78] uppercase tracking-wider block mb-1.5">
                 Order Being Disputed
               </label>
               <select
                 value={selectedOrderId}
                 onChange={(e) => setSelectedOrderId(e.target.value)}
-                className="w-full bg-[#121214] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-orange-500"
+                className="w-full bg-white border border-[#E9E9EB] rounded-lg px-3.5 py-2 text-xs text-[#282C3F] focus:outline-none focus:border-[#FC8019]"
               >
-                <option value="order-demo-completed">#order-demo-completed · Meghana Foods (Indiranagar) · Delivered (₹480)</option>
-                <option value="order-demo-live">#order-demo-live · Meghana Foods (Indiranagar) · Live In-Flight (₹480)</option>
+                <option value="order-demo-completed">#order-demo-completed · Spice Garden (Indiranagar) · Delivered (₹480)</option>
+                <option value="order-demo-live">#order-demo-live · Spice Garden (Indiranagar) · Live In-Flight (₹585)</option>
               </select>
             </div>
 
@@ -223,18 +227,18 @@ export default function ResolvePage() {
                   id={`issue-option-${opt.kind}`}
                   data-testid={`issue-${opt.kind}`}
                   onClick={() => setSelectedIssue(opt.kind)}
-                  className={`p-4 rounded-xl text-left border transition-all cursor-pointer flex items-start gap-3.5 ${
+                  className={`p-4 rounded-lg text-left border transition-colors cursor-pointer flex items-start gap-3.5 ${
                     selectedIssue === opt.kind
-                      ? 'border-orange-500 bg-orange-500/10 shadow-lg shadow-orange-500/10'
-                      : 'border-white/10 bg-white/5 hover:bg-white/[0.08] hover:border-white/20'
+                      ? 'border-[#FC8019] bg-[#FFF3E8]'
+                      : 'border-[#E9E9EB] bg-white hover:border-[#FC8019]/40 hover:bg-[#F7F7F9]'
                   }`}
                 >
                   <span className="text-2xl mt-0.5">{opt.emoji}</span>
                   <div>
-                    <p className="text-sm font-semibold text-white">{opt.label}</p>
-                    <p className="text-xs text-white/50 mt-1 leading-relaxed">{opt.desc}</p>
+                    <p className="text-xs font-bold text-[#282C3F]">{opt.label}</p>
+                    <p className="text-[11px] text-[#686B78] mt-1 leading-relaxed">{opt.desc}</p>
                     {opt.requiresPhoto && (
-                      <span className="inline-block mt-2 text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-white/5 text-white/60 border border-white/10">
+                      <span className="inline-block mt-2 text-[10px] uppercase font-bold px-2 py-0.5 rounded bg-[#F7F7F9] text-[#686B78] border border-[#E9E9EB]">
                         Photo Required
                       </span>
                     )}
@@ -243,14 +247,14 @@ export default function ResolvePage() {
               ))}
             </div>
 
-            <div className="pt-4 border-t border-white/10 flex justify-end">
+            <div className="pt-4 border-t border-[#E9E9EB] flex justify-end">
               <button
                 id="issue-continue-btn"
                 disabled={!selectedIssue || createCaseMutation.isPending}
                 onClick={() => {
                   if (selectedIssue) createCaseMutation.mutate({ issue: selectedIssue });
                 }}
-                className="px-6 py-3 rounded-xl bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white font-semibold text-sm shadow-lg shadow-orange-600/30 transition flex items-center gap-2"
+                className="btn-primary text-xs font-bold"
               >
                 {createCaseMutation.isPending ? 'Initiating Dispute Session…' : 'Continue to Evidence →'}
               </button>
@@ -260,10 +264,10 @@ export default function ResolvePage() {
 
         {/* Step 2: Select Items (For Wrong or Missing item) */}
         {step === 'select-items' && (
-          <div className="bg-[#18181b] border border-white/10 rounded-2xl p-6 shadow-xl space-y-6 step-enter">
+          <div className="bg-white border border-[#E9E9EB] rounded-lg p-6 shadow-sm space-y-6 step-enter">
             <div>
-              <h2 className="text-base font-bold text-white">2. Select Affected Items</h2>
-              <p className="text-xs text-white/50 mt-0.5">
+              <h2 className="text-base font-bold text-[#282C3F]">2. Select Affected Items</h2>
+              <p className="text-xs text-[#686B78] mt-0.5">
                 Check each item from your bill that was missing or incorrectly fulfilled.
               </p>
             </div>
@@ -275,40 +279,40 @@ export default function ResolvePage() {
                   <div
                     key={item.id}
                     onClick={() => toggleItemSelection(item.id)}
-                    className={`p-4 rounded-xl border transition cursor-pointer flex items-center justify-between ${
+                    className={`p-3.5 rounded-lg border transition-colors cursor-pointer flex items-center justify-between ${
                       isChecked
-                        ? 'border-orange-500 bg-orange-500/10'
-                        : 'border-white/10 bg-white/5 hover:bg-white/[0.08]'
+                        ? 'border-[#FC8019] bg-[#FFF3E8]'
+                        : 'border-[#E9E9EB] bg-white hover:bg-[#F7F7F9]'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className={`w-5 h-5 rounded-md border flex items-center justify-center text-xs font-bold ${
-                        isChecked ? 'bg-orange-600 border-orange-500 text-white' : 'border-white/30 text-transparent'
+                      <div className={`w-4 h-4 rounded border flex items-center justify-center text-[10px] font-bold ${
+                        isChecked ? 'bg-[#FC8019] border-[#FC8019] text-white' : 'border-[#E9E9EB] text-transparent'
                       }`}>
                         ✓
                       </div>
                       <div>
-                        <p className="text-sm font-semibold text-white">{item.name}</p>
-                        <p className="text-xs text-white/40">{item.isVeg ? 'Veg' : 'Non-Veg'}</p>
+                        <p className="text-xs font-bold text-[#282C3F]">{item.name}</p>
+                        <p className="text-[10px] text-[#686B78]">{item.isVeg ? 'Veg' : 'Non-Veg'}</p>
                       </div>
                     </div>
-                    <span className="text-sm font-mono text-white/90">{formatRupees(item.pricePaise)}</span>
+                    <span className="text-xs font-bold text-[#282C3F]">{formatRupees(item.pricePaise)}</span>
                   </div>
                 );
               })}
             </div>
 
-            <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+            <div className="pt-4 border-t border-[#E9E9EB] flex items-center justify-between">
               <button
                 onClick={() => setStep('select-issue')}
-                className="px-4 py-2 rounded-xl text-xs text-white/60 hover:text-white"
+                className="btn-ghost text-xs"
               >
                 ← Change Issue
               </button>
               <button
                 onClick={() => setStep('evidence')}
                 disabled={selectedItemIds.length === 0}
-                className="px-6 py-2.5 rounded-xl bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white font-semibold text-sm transition"
+                className="btn-primary text-xs font-bold"
               >
                 Continue to Photo Proof ({selectedItemIds.length} selected) →
               </button>
@@ -318,11 +322,11 @@ export default function ResolvePage() {
 
         {/* Step 3: Evidence (Photo Upload) */}
         {step === 'evidence' && (
-          <div className="bg-[#18181b] border border-white/10 rounded-2xl p-6 shadow-xl space-y-6 step-enter">
+          <div className="bg-white border border-[#E9E9EB] rounded-lg p-6 shadow-sm space-y-6 step-enter">
             <div>
-              <h2 className="text-base font-bold text-white">3. Provide Evidence Proof</h2>
-              <p className="text-xs text-white/50 mt-0.5">
-                Provide clear picture or food packaging label to trigger instant algorithmic approval.
+              <h2 className="text-base font-bold text-[#282C3F]">3. Provide Evidence Proof</h2>
+              <p className="text-xs text-[#686B78] mt-0.5">
+                Provide clear picture of food packaging label to trigger instant algorithmic approval.
               </p>
             </div>
 
@@ -331,10 +335,10 @@ export default function ResolvePage() {
               <label
                 id="photo-upload-label"
                 htmlFor="photo-upload"
-                className={`flex flex-col items-center justify-center p-8 rounded-2xl border-2 border-dashed cursor-pointer transition-all ${
+                className={`flex flex-col items-center justify-center p-8 rounded-lg border-2 border-dashed cursor-pointer transition-colors ${
                   photoPreview
-                    ? 'border-emerald-500/50 bg-emerald-500/5'
-                    : 'border-white/15 bg-white/[0.02] hover:bg-white/5 hover:border-orange-500/40'
+                    ? 'border-[#1BA672] bg-[#EAF7F1]'
+                    : 'border-[#E9E9EB] bg-[#F7F7F9] hover:bg-[#FFF3E8] hover:border-[#FC8019]'
                 }`}
               >
                 {photoPreview ? (
@@ -342,23 +346,23 @@ export default function ResolvePage() {
                     <img
                       src={photoPreview}
                       alt="Uploaded dispute proof"
-                      className="w-48 h-36 object-cover rounded-xl border border-white/20 shadow-md"
+                      className="w-48 h-36 object-cover rounded-lg border border-[#E9E9EB] shadow-sm"
                     />
-                    <p className="text-xs text-emerald-400 font-semibold flex items-center gap-1.5">
+                    <p className="text-xs text-[#1BA672] font-bold flex items-center gap-1.5">
                       <span>✓</span> {photoFile?.name} ({(photoFile?.size ? photoFile.size / 1024 : 0).toFixed(0)} KB)
                     </p>
-                    <span className="text-[11px] text-white/40 underline">Click to change photo</span>
+                    <span className="text-[11px] text-[#686B78] underline">Click to change photo</span>
                   </div>
                 ) : (
                   <div className="text-center space-y-2">
-                    <div className="w-12 h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-xl">
-                      📷
+                    <div className="w-10 h-10 rounded-full bg-white border border-[#E9E9EB] flex items-center justify-center mx-auto text-[#FC8019]">
+                      <Camera size={20} />
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-white">Upload photo</p>
-                      <p className="text-xs text-white/50 mt-0.5">Drag and drop or browse files</p>
+                      <p className="text-xs font-bold text-[#282C3F]">Upload photo</p>
+                      <p className="text-[11px] text-[#686B78] mt-0.5">Drag and drop or browse files</p>
                     </div>
-                    <span className="inline-block text-[10px] text-white/40 font-mono px-2 py-0.5 rounded bg-white/5">
+                    <span className="inline-block text-[10px] text-[#686B78] px-2 py-0.5 rounded bg-white border border-[#E9E9EB]">
                       Max 2 MB · JPEG / PNG / WebP
                     </span>
                   </div>
@@ -374,10 +378,10 @@ export default function ResolvePage() {
               </label>
             </div>
 
-            <div className="pt-4 border-t border-white/10 flex items-center justify-between">
+            <div className="pt-4 border-t border-[#E9E9EB] flex items-center justify-between">
               <button
                 onClick={() => setStep(selectedIssue === 'quality' ? 'select-issue' : 'select-items')}
-                className="px-4 py-2 rounded-xl text-xs text-white/60 hover:text-white"
+                className="btn-ghost text-xs"
               >
                 ← Back
               </button>
@@ -385,7 +389,7 @@ export default function ResolvePage() {
                 id="submit-evidence-btn"
                 onClick={handleEvidenceSubmit}
                 disabled={submitMutation.isPending}
-                className="px-6 py-3 rounded-xl bg-orange-600 hover:bg-orange-500 disabled:opacity-50 text-white font-semibold text-sm shadow-lg shadow-orange-600/30 transition flex items-center gap-2"
+                className="btn-primary text-xs font-bold"
               >
                 {submitMutation.isPending ? 'Evaluating via FairnessEngine…' : 'Check my entitlement →'}
               </button>
@@ -395,36 +399,29 @@ export default function ResolvePage() {
 
         {/* Step 4: Preview Decision */}
         {step === 'preview' && decision && (
-          <div className="bg-[#18181b] border border-white/10 rounded-2xl p-6 shadow-xl space-y-6 step-enter">
-            <div className="flex items-center justify-between pb-4 border-b border-white/10">
+          <div className="bg-white border border-[#E9E9EB] rounded-lg p-6 shadow-sm space-y-6 step-enter">
+            <div className="flex items-center justify-between pb-4 border-b border-[#E9E9EB]">
               <div>
-                <span className="text-xs text-white/40 uppercase tracking-wider font-semibold">Compensation Preview</span>
-                <h2 className="text-xl font-bold text-white mt-0.5">Here&apos;s what you&apos;re owed</h2>
+                <span className="text-[11px] text-[#686B78] uppercase tracking-wider font-bold">Compensation Preview</span>
+                <h2 className="text-xl font-bold text-[#282C3F] mt-0.5">Here&apos;s what you&apos;re owed</h2>
               </div>
-              <span
-                className="text-xs uppercase tracking-wider px-3 py-1 rounded-full font-semibold border"
-                style={{
-                  background: `${CONFIDENCE_COLORS[decision.confidence]}18`,
-                  color: CONFIDENCE_COLORS[decision.confidence],
-                  borderColor: `${CONFIDENCE_COLORS[decision.confidence]}40`,
-                }}
-              >
-                {CONFIDENCE_LABELS[decision.confidence]}
+              <span className="text-xs uppercase tracking-wider px-3 py-1 rounded font-bold bg-[#EAF7F1] text-[#1BA672] border border-[#1BA672]/20">
+                {CONFIDENCE_LABELS[decision.confidence] ?? 'Automated Resolution'}
               </span>
             </div>
 
             {/* Line items breakdown */}
-            <div className="space-y-3 bg-white/[0.02] border border-white/5 rounded-xl p-4">
-              <span className="text-xs text-white/40 uppercase tracking-wider block mb-1">Entitlement Line Items</span>
+            <div className="space-y-3 bg-[#F7F7F9] border border-[#E9E9EB] rounded-lg p-4">
+              <span className="text-[11px] text-[#686B78] uppercase tracking-wider block font-bold">Entitlement Line Items</span>
               {decision.lineItems.map((item, i) => (
-                <div key={i} className="flex justify-between items-center py-2 border-b border-white/5 last:border-0">
+                <div key={i} className="flex justify-between items-center py-2 border-b border-[#E9E9EB] last:border-0">
                   <div>
-                    <span className="text-sm font-medium text-white">{item.label}</span>
-                    <p className="text-[11px] text-white/40">
+                    <span className="text-xs font-bold text-[#282C3F]">{item.label}</span>
+                    <p className="text-[11px] text-[#686B78]">
                       Destination: {item.destination === 'wallet' ? 'Instant Swiggy Wallet' : 'Original Payment Source'}
                     </p>
                   </div>
-                  <span className="text-base font-mono font-bold text-emerald-400">
+                  <span className="text-sm font-bold text-[#1BA672]">
                     +{formatRupees(item.amount)}
                   </span>
                 </div>
@@ -432,22 +429,22 @@ export default function ResolvePage() {
             </div>
 
             {/* Total Highlight */}
-            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-5 flex items-center justify-between">
+            <div className="bg-[#EAF7F1] border border-[#1BA672]/30 rounded-lg p-5 flex items-center justify-between">
               <div>
-                <p className="text-xs text-emerald-300 font-semibold uppercase tracking-wider">Total Approved Recovery</p>
-                <p className="text-xs text-white/60 mt-0.5">
-                  Credited to: <strong className="text-white">{decision.destination === 'wallet' ? 'Swiggy Wallet' : 'Source UPI/Card'}</strong>
+                <p className="text-xs text-[#1BA672] font-bold uppercase tracking-wider">Total Approved Recovery</p>
+                <p className="text-xs text-[#282C3F] mt-0.5">
+                  Credited to: <strong className="text-[#282C3F]">{decision.destination === 'wallet' ? 'Swiggy Wallet' : 'Source UPI/Card'}</strong>
                 </p>
               </div>
-              <span className="text-2xl font-mono font-bold text-emerald-400">
+              <span className="text-2xl font-bold text-[#1BA672]">
                 +{formatRupees(decision.total)}
               </span>
             </div>
 
             {/* Reason Trace Card */}
-            <div className="bg-white/5 border border-white/5 rounded-xl p-4">
-              <span className="text-xs text-white/40 uppercase tracking-wider block mb-1">Audit Policy Evaluation</span>
-              <p className="text-xs text-white/80 leading-relaxed font-mono">
+            <div className="bg-[#F7F7F9] border border-[#E9E9EB] rounded-lg p-4">
+              <span className="text-[11px] text-[#686B78] uppercase tracking-wider block font-bold mb-1">Audit Policy Evaluation</span>
+              <p className="text-xs text-[#282C3F] leading-relaxed font-mono">
                 {decision.reason}
               </p>
             </div>
@@ -455,14 +452,14 @@ export default function ResolvePage() {
             {/* Action Buttons */}
             {decision.outcome === 'human_review' ? (
               <div className="space-y-3 pt-2">
-                <p className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 p-3 rounded-xl text-center">
+                <p className="text-xs text-[#C77400] bg-[#FFF6E5] border border-[#C77400]/20 p-3 rounded-lg text-center font-medium">
                   ⚠️ This case triggered priority human review (order value or conflicting telemetry). An agent is reviewing the evidence.
                 </p>
                 <button
                   id="escalate-btn"
                   onClick={() => escalateMutation.mutate()}
                   disabled={escalateMutation.isPending}
-                  className="w-full py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm shadow-lg shadow-orange-600/30 transition"
+                  className="btn-primary w-full text-xs font-bold"
                 >
                   {escalateMutation.isPending ? 'Forwarding to Agent Queue…' : 'Send to Support Specialist →'}
                 </button>
@@ -473,7 +470,7 @@ export default function ResolvePage() {
                   id="accept-resolution-btn"
                   onClick={() => acceptMutation.mutate()}
                   disabled={acceptMutation.isPending}
-                  className="w-full py-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-sm shadow-lg shadow-emerald-600/30 transition"
+                  className="btn-primary w-full text-xs font-bold !bg-[#1BA672] hover:!bg-[#158057]"
                 >
                   {acceptMutation.isPending ? 'Confirming Ledger Credit…' : `Accept & Credit +${formatRupees(decision.total)}`}
                 </button>
@@ -481,7 +478,7 @@ export default function ResolvePage() {
                   id="escalate-to-human-btn"
                   onClick={() => escalateMutation.mutate()}
                   disabled={escalateMutation.isPending}
-                  className="w-full py-2.5 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-xs font-semibold text-white/70 hover:text-white transition"
+                  className="btn-secondary w-full text-xs font-semibold"
                 >
                   I want a support specialist to review this manually instead
                 </button>
@@ -492,33 +489,33 @@ export default function ResolvePage() {
 
         {/* Step 5: Accepted State */}
         {step === 'accepted' && (
-          <div className="bg-[#18181b] border border-white/10 rounded-2xl p-8 text-center space-y-6 step-enter shadow-2xl">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center mx-auto text-3xl">
-              {decision?.outcome === 'human_review' ? '🎧' : '✅'}
+          <div className="bg-white border border-[#E9E9EB] rounded-lg p-8 text-center space-y-6 step-enter shadow-sm">
+            <div className="w-12 h-12 rounded-full bg-[#EAF7F1] text-[#1BA672] flex items-center justify-center mx-auto">
+              <CheckCircle2 size={24} />
             </div>
 
             <div>
-              <h2 className="text-2xl font-bold text-white">
+              <h2 className="text-xl font-bold text-[#282C3F]">
                 {decision?.outcome === 'human_review' ? 'Dispute Escalated to Support Queue' : 'Dispute Resolved & Recorded'}
               </h2>
-              <p className="text-sm text-white/60 max-w-md mx-auto mt-2 leading-relaxed">
+              <p className="text-xs text-[#686B78] max-w-md mx-auto mt-2 leading-relaxed">
                 {decision?.outcome === 'human_review'
                   ? 'Case ID #' + (caseId || 'CASE-9021') + ' has been routed to our L2 Operations specialist. Target resolution within 15 mins.'
                   : `${formatRupees(decision?.total ?? 0)} has been posted to the append-only Recovery Ledger and credited to your ${decision?.destination === 'wallet' ? 'Swiggy wallet' : 'source account'}.`}
               </p>
             </div>
 
-            <div className="pt-4 flex items-center justify-center gap-3">
+            <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
               <button
                 id="back-to-track-btn"
                 onClick={() => router.push('/track')}
-                className="px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-sm transition"
+                className="btn-secondary text-xs font-bold w-full sm:w-auto"
               >
                 Track Live Order
               </button>
               <button
                 onClick={() => router.push('/recovery-history')}
-                className="px-6 py-3 rounded-xl bg-orange-600 hover:bg-orange-500 text-white font-semibold text-sm transition"
+                className="btn-primary text-xs font-bold w-full sm:w-auto"
               >
                 View Recovery History →
               </button>
