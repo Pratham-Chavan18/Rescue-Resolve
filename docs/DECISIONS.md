@@ -74,7 +74,16 @@ Format: **Decision** — context → choice → rationale → what was rejected.
 *Choice:* `LedgerEntry` is insert-only; corrections are compensating entries.
 *Rationale:* compensation fairness is the product's promise — the audit trail must be untamperable. Protected in CONSTRAINTS §3.
 
+## D13. Config-driven 30-day rolling credit cap & upload size limits
+*Context:* CONSTRAINTS §5.21 and PRD §8 mandate enforcing a 30-day automatic credit cap, and CONSTRAINTS §4.16 mandates capping evidence uploads at 2 MB.
+*Choice:*
+1. The 30-day rolling automatic credit cap is strictly environment-configured via `CREDIT_CAP_PAISE` (default 50,000 paise / ₹500, matching `.env.example`). When a customer reaches this threshold, the Fairness Engine downgrades confidence to `low` and routes the claim to human review under rule `H-1`. Any unverified figures (such as ₹3,000) are explicitly rejected unless approved in writing.
+2. Photo evidence uploads are strictly capped at 2,097,152 bytes (2 MB) in both the NestJS controller (`FileInterceptor` limits) and service validation layer, rejecting larger payloads with HTTP 413 `PayloadTooLargeException`.
+*Rationale:* Invariants must be driven by explicit config and approved contracts without hardcoded assumptions.
+*Rejected:* Hardcoding arbitrary ₹3,000 cap; permitting 5 MB upload limits without spec approval.
+
 ---
 
 ### Superseded / reconsidered
 *(none yet — add new dated entries here as decisions evolve)*
+

@@ -53,11 +53,11 @@ const HIGH_VALUE_CAP_PAISE =
     : 150000;
 
 // Rolling 30-day automatic credit cap:
-// CONSTRAINTS §5.21 and PRD §8: configurable via env, defaulting to ₹3,000 (300,000 paise)
+// CONSTRAINTS §5.21 and PRD §8: configurable via env (CREDIT_CAP_PAISE, defaulting to ₹500 / 50,000 paise per .env.example)
 const ROLLING_CREDIT_CAP_PAISE =
-  typeof process !== 'undefined' && process.env?.['ROLLING_CREDIT_CAP_PAISE']
-    ? parseInt(process.env['ROLLING_CREDIT_CAP_PAISE'], 10)
-    : 300000;
+  typeof process !== 'undefined' && (process.env?.['CREDIT_CAP_PAISE'] || process.env?.['ROLLING_CREDIT_CAP_PAISE'])
+    ? parseInt((process.env['CREDIT_CAP_PAISE'] ?? process.env['ROLLING_CREDIT_CAP_PAISE'])!, 10)
+    : 50000;
 
 // ─── Output ───────────────────────────────────────────────────────────────────
 

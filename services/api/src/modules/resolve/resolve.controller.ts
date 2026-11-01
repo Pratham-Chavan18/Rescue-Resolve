@@ -43,7 +43,11 @@ export class ResolveController {
   }
 
   @Post('cases/:id/evidence')
-  @UseInterceptors(FileInterceptor('photo', { storage: undefined })) // memory storage — validated in service
+  @UseInterceptors(
+    FileInterceptor('photo', {
+      limits: { fileSize: 2 * 1024 * 1024 }, // 2 MB limit per CONSTRAINTS §4.16
+    }),
+  )
   async addEvidence(
     @Param('id') id: string,
     @Body() body: { itemIds?: string },

@@ -68,11 +68,11 @@ describe('H-1: high-value order → human review', () => {
     expect(result.outcome).not.toBe('human_review');
   });
 
-  it('routes customer who reached 30-day rolling credit cap (≥₹3,000) to human review', () => {
+  it('routes customer who reached 30-day rolling credit cap (≥₹500 / config) to human review', () => {
     const cappedHistory: CustomerHistory = {
       claimCount: 1,
       totalOrders: 20,
-      rollingCreditPaise: 300000 as Paise, // ₹3,000
+      rollingCreditPaise: 50000 as Paise, // ₹500 default per .env.example
     };
     const claim: Claim = {
       issueKind: 'missing_item',
