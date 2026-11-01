@@ -49,25 +49,21 @@ export class SupabaseStorageService implements StorageService {
     }
   }
 
-  private getSafeObjectKey(objectPath: string): string {
+  async upload(objectPath: string, buffer: Buffer, mimetype: string): Promise<{ path: string }> {
     if (!objectPath || typeof objectPath !== 'string' || objectPath.includes('..') || !/^[a-zA-Z0-9_\-./]+$/.test(objectPath)) {
       throw new Error('Invalid storage path: path traversal detected');
     }
-    const safeSegments = objectPath
+    const safeKey = objectPath
       .replace(/\\/g, '/')
       .split('/')
       .map((seg) => path.basename(seg))
-      .filter((seg) => seg && seg !== '.' && seg !== '..');
+      .filter((seg) => seg && seg !== '.' && seg !== '..')
+      .join('/');
 
-    if (safeSegments.length === 0) {
-      throw new Error('Invalid storage path: empty path');
+    if (!safeKey || safeKey.startsWith('..')) {
+      throw new Error('Invalid storage path: path traversal detected');
     }
-    return safeSegments.join('/');
-  }
 
-  async upload(objectPath: string, buffer: Buffer, mimetype: string): Promise<{ path: string }> {
-    const safePath = this.getSafeObjectKey(objectPath);
-    const safeKey = safePath.split('/').map((s) => path.basename(s)).join('/');
     const { data, error } = await this.client.storage
       .from(this.bucket)
       .upload(safeKey, buffer, {
@@ -84,8 +80,20 @@ export class SupabaseStorageService implements StorageService {
   }
 
   async getSignedUrl(objectPath: string, expiresInSeconds = 3600): Promise<string> {
-    const safePath = this.getSafeObjectKey(objectPath);
-    const safeKey = safePath.split('/').map((s) => path.basename(s)).join('/');
+    if (!objectPath || typeof objectPath !== 'string' || objectPath.includes('..') || !/^[a-zA-Z0-9_\-./]+$/.test(objectPath)) {
+      throw new Error('Invalid storage path: path traversal detected');
+    }
+    const safeKey = objectPath
+      .replace(/\\/g, '/')
+      .split('/')
+      .map((seg) => path.basename(seg))
+      .filter((seg) => seg && seg !== '.' && seg !== '..')
+      .join('/');
+
+    if (!safeKey || safeKey.startsWith('..')) {
+      throw new Error('Invalid storage path: path traversal detected');
+    }
+
     const { data, error } = await this.client.storage
       .from(this.bucket)
       .createSignedUrl(safeKey, expiresInSeconds);
@@ -99,8 +107,20 @@ export class SupabaseStorageService implements StorageService {
   }
 
   async delete(objectPath: string): Promise<void> {
-    const safePath = this.getSafeObjectKey(objectPath);
-    const safeKey = safePath.split('/').map((s) => path.basename(s)).join('/');
+    if (!objectPath || typeof objectPath !== 'string' || objectPath.includes('..') || !/^[a-zA-Z0-9_\-./]+$/.test(objectPath)) {
+      throw new Error('Invalid storage path: path traversal detected');
+    }
+    const safeKey = objectPath
+      .replace(/\\/g, '/')
+      .split('/')
+      .map((seg) => path.basename(seg))
+      .filter((seg) => seg && seg !== '.' && seg !== '..')
+      .join('/');
+
+    if (!safeKey || safeKey.startsWith('..')) {
+      throw new Error('Invalid storage path: path traversal detected');
+    }
+
     const { error } = await this.client.storage.from(this.bucket).remove([safeKey]);
     if (error) {
       this.logger.warn(`Failed to delete storage object "${safeKey}": ${error.message}`);
