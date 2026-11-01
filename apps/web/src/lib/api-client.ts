@@ -54,6 +54,15 @@ export const ordersApi = {
   getMyOrder: (token: string) =>
     request<any>('/orders/me', { token }),
 
+  getAllOrders: (token: string) =>
+    request<any[]>('/orders/all', { token }),
+
+  getCompletedOrders: (token: string) =>
+    request<any[]>('/orders/completed', { token }),
+
+  getCustomerRecoveryHistory: (token: string) =>
+    request<any[]>('/orders/recovery/history', { token }),
+
   getOrder: (id: string, token: string) =>
     request<any>(`/orders/${id}`, { token }),
 };
@@ -117,6 +126,15 @@ export const agentApi = {
   getCaseQueue: (token: string) =>
     request<any[]>('/agent/cases', { token }),
 
+  getAllCases: (token: string) =>
+    request<any[]>('/agent/all-cases', { token }),
+
+  getLedger: (token: string) =>
+    request<any[]>('/agent/ledger', { token }),
+
+  getRecoveryLedger: (token: string) =>
+    request<any[]>('/agent/ledger', { token }),
+
   getCasePack: (id: string, token: string) =>
     request<any>(`/agent/cases/${id}`, { token }),
 
@@ -133,6 +151,18 @@ export const partnersApi = {
   getRestaurantOrders: (token: string) =>
     request<any[]>('/partner/restaurant/orders', { token }),
 
+  acceptOrder: (orderId: string, token: string) =>
+    request<{ ok: boolean; status: string }>(`/partner/restaurant/orders/${orderId}/accept`, {
+      method: 'POST',
+      token,
+    }),
+
+  markReady: (orderId: string, token: string) =>
+    request<{ ok: boolean; status: string }>(`/partner/restaurant/orders/${orderId}/mark-ready`, {
+      method: 'POST',
+      token,
+    }),
+
   confirmPacking: (orderId: string, confirmedMinutes: number, token: string) =>
     request<any>(`/partner/restaurant/orders/${orderId}/confirm-packing`, {
       method: 'POST',
@@ -146,6 +176,44 @@ export const partnersApi = {
   acceptReassignment: (orderId: string, token: string) =>
     request<{ ok: boolean }>(`/partner/rider/tasks/${orderId}/accept-reassignment`, {
       method: 'POST',
+      token,
+    }),
+
+  pickupTask: (orderId: string, token: string) =>
+    request<{ ok: boolean; status: string }>(`/partner/rider/tasks/${orderId}/pickup`, {
+      method: 'POST',
+      token,
+    }),
+
+  pickupOrder: (orderId: string, token: string) =>
+    request<{ ok: boolean; status: string }>(`/partner/rider/tasks/${orderId}/pickup`, {
+      method: 'POST',
+      token,
+    }),
+
+  deliverTask: (orderId: string, token: string) =>
+    request<{ ok: boolean; status: string }>(`/partner/rider/tasks/${orderId}/deliver`, {
+      method: 'POST',
+      token,
+    }),
+
+  deliverOrder: (orderId: string, token: string) =>
+    request<{ ok: boolean; status: string }>(`/partner/rider/tasks/${orderId}/deliver`, {
+      method: 'POST',
+      token,
+    }),
+
+  reportIssue: (orderId: string, reason: string, token: string) =>
+    request<{ ok: boolean; reason: string }>(`/partner/rider/tasks/${orderId}/report-issue`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+      token,
+    }),
+
+  reportRiderIssue: (orderId: string, reason: string, token: string) =>
+    request<{ ok: boolean; reason: string }>(`/partner/rider/tasks/${orderId}/report-issue`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
       token,
     }),
 };

@@ -140,4 +140,34 @@ export class AgentService {
 
     return { ok: true };
   }
+
+  async getAllCases() {
+    return this.prisma.resolveCase.findMany({
+      include: {
+        customer: { select: { id: true, name: true, phone: true } },
+        order: { include: { items: true, restaurant: { select: { id: true, name: true, issueRate: true } } } },
+        evidence: true,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+  }
+
+  async getRecoveryLedger() {
+    return this.prisma.ledgerEntry.findMany({
+      include: {
+        order: {
+          select: {
+            id: true,
+            totalPaise: true,
+            status: true,
+            restaurant: { select: { name: true } },
+            user: { select: { name: true, phone: true } },
+          },
+        },
+      },
+      orderBy: { at: 'desc' },
+      take: 100,
+    });
+  }
 }

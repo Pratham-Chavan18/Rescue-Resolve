@@ -36,6 +36,16 @@ export class AgentController {
     return this.agentService.getCaseQueue();
   }
 
+  @Get('all-cases')
+  async getAllCases() {
+    return this.agentService.getAllCases();
+  }
+
+  @Get('ledger')
+  async getLedger() {
+    return this.agentService.getRecoveryLedger();
+  }
+
   @Get('cases/:id')
   async getCasePack(@Param('id') id: string) {
     return this.agentService.getCasePack(id);

@@ -1,0 +1,332 @@
+'use client';
+
+import React, { useEffect } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useQuery } from '@tanstack/react-query';
+import {
+  MapPin,
+  Clock,
+  ArrowRight,
+  ShieldAlert,
+  Scale,
+  ShoppingBag,
+  CheckCircle2,
+  AlertTriangle,
+  Wallet,
+  Sparkles,
+  ChevronRight,
+  RefreshCw,
+  FileQuestion,
+  Store,
+} from 'lucide-react';
+import { AppShell } from '@/components/AppShell';
+import { useAuthStore } from '@/store/auth';
+import { ordersApi, resolveApi } from '@/lib/api-client';
+import { formatRupees, formatEta } from '@/lib/format';
+
+export default function CustomerDashboardPage() {
+  const router = useRouter();
+  const { user, token } = useAuthStore();
+
+  useEffect(() => {
+    if (!token) {
+      router.push('/');
+    } else if (user?.role && user.role !== 'customer') {
+      if (user.role === 'restaurant') router.push('/partner/restaurant');
+      else if (user.role === 'rider') router.push('/partner/rider');
+      else if (user.role === 'agent') router.push('/agent');
+    }
+  }, [token, user, router]);
+
+  // Fetch active order
+  const { data: activeOrder, isLoading: activeLoading } = useQuery({
+    queryKey: ['my-order'],
+    queryFn: () => ordersApi.getMyOrder(token!),
+    enabled: !!token,
+    refetchInterval: 10000,
+  });
+
+  // Fetch recent completed orders
+  const { data: completedOrders = [] } = useQuery({
+    queryKey: ['completed-orders'],
+    queryFn: () => ordersApi.getCompletedOrders(token!),
+    enabled: !!token,
+  });
+
+  // Fetch customer recovery history
+  const { data: recoveryHistory = [] } = useQuery({
+    queryKey: ['recovery-history'],
+    queryFn: () => ordersApi.getCustomerRecoveryHistory(token!),
+    enabled: !!token,
+  });
+
+  if (!token || user?.role !== 'customer') {
+    return null;
+  }
+
+  const currentHealth = activeOrder?.health?.state ?? 'on_track';
+  const totalRecoveryPaise = recoveryHistory.reduce((sum: number, entry: any) => sum + (entry.amountPaise ?? 0), 0);
+
+  return (
+    <AppShell>
+      <div className="space-y-6">
+        {/* ── Greeting & Wallet Hero ──────────────────────────────────────── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 rounded-2xl bg-white border border-[var(--line)] shadow-sm">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xl font-bold text-[var(--ink)]">Hi, {user.name} 👋</span>
+              <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-orange-100 text-[var(--accent-ink)]">
+                Protected by Unified Recovery
+              </span>
+            </div>
+            <p className="text-xs text-[var(--ink-2)]">
+              Real-time monitoring active. Proactive delay rescue + instant mathematical dispute settlements.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="px-4 py-3 rounded-xl bg-[var(--surface-sunk)] border border-[var(--line)] flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                <Wallet size={18} />
+              </div>
+              <div>
+                <p className="text-[10px] uppercase font-bold text-[var(--ink-2)] tracking-wider">Swiggy Wallet</p>
+                <p className="text-base font-extrabold text-[var(--ink)]">{formatRupees(totalRecoveryPaise > 0 ? totalRecoveryPaise : 5000)}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Active Order Card ───────────────────────────────────────────── */}
+        {activeOrder ? (
+          <div className="p-6 rounded-2xl bg-white border-2 border-orange-200 shadow-sm relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-40 h-40 bg-orange-50 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none" />
+
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 relative z-10">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-orange-100 text-orange-800 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-orange-500 animate-ping" />
+                    Live Active Order
+                  </span>
+                  <span
+                    className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+                      currentHealth === 'on_track'
+                        ? 'bg-[var(--ok-soft)] text-[var(--ok)]'
+                        : currentHealth === 'at_risk'
+                        ? 'bg-[var(--warn-soft)] text-[var(--warn)]'
+                        : 'bg-[var(--bad-soft)] text-[var(--bad)]'
+                    }`}
+                  >
+                    {currentHealth === 'on_track' ? '✓ On Track' : currentHealth === 'at_risk' ? '⚠️ Running Late' : '🚨 Major Delay'}
+                  </span>
+                </div>
+
+                <div>
+                  <h3 className="text-lg font-bold text-[var(--ink)]">
+                    {activeOrder.restaurant?.name ?? 'Restaurant'} · {activeOrder.items?.length ?? 0} items
+                  </h3>
+                  <p className="text-xs text-[var(--ink-2)] mt-0.5">
+                    {activeOrder.items?.map((i: any) => `${i.name} (x${i.qty})`).join(', ')}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-4 text-xs text-[var(--ink-2)] pt-1">
+                  <div className="flex items-center gap-1.5">
+                    <Clock size={14} className="text-[var(--accent)]" />
+                    <span>Estimated Arrival: <strong className="text-[var(--ink)]">{activeOrder.health?.etaAt ? formatEta(activeOrder.health.etaAt) : 'In 25-30 min'}</strong></span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <MapPin size={14} className="text-neutral-500" />
+                    <span>Delivering to: <strong className="text-[var(--ink)]">{activeOrder.address}</strong></span>
+                  </div>
+                  <div>
+                    <span>Total: <strong className="text-[var(--ink)]">{formatRupees(activeOrder.totalPaise)}</strong></span>
+                  </div>
+                </div>
+
+                {/* Proactive Rescue Notice if delayed */}
+                {currentHealth !== 'on_track' && (
+                  <div className="p-3 rounded-xl bg-orange-50 border border-orange-200 text-xs text-orange-900 flex items-center justify-between">
+                    <span className="font-medium">⚠️ Proactive Recovery Triggered: You are entitled to immediate compensation or options.</span>
+                    <Link
+                      href="/track"
+                      className="px-3 py-1 bg-[var(--accent)] text-white font-bold rounded-lg text-xs hover:bg-[var(--accent-ink)] transition-colors whitespace-nowrap ml-3"
+                    >
+                      Choose Action
+                    </Link>
+                  </div>
+                )}
+              </div>
+
+              {/* Action Button */}
+              <div className="flex lg:flex-col gap-2 flex-shrink-0">
+                <Link
+                  id="dashboard-track-btn"
+                  href="/track"
+                  className="px-5 py-3 rounded-xl font-bold text-xs bg-[var(--accent)] text-white hover:bg-[var(--accent-ink)] transition-all shadow-sm flex items-center justify-center gap-2"
+                >
+                  <MapPin size={16} />
+                  <span>Track Live Order</span>
+                </Link>
+                <Link
+                  href="/orders"
+                  className="px-5 py-3 rounded-xl font-bold text-xs bg-white text-[var(--ink)] border border-[var(--line)] hover:bg-neutral-50 transition-all flex items-center justify-center gap-2"
+                >
+                  <span>Order Details</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="p-6 rounded-2xl bg-white border border-[var(--line)] flex items-center justify-between text-xs">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-neutral-100 flex items-center justify-center text-xl">🛵</div>
+              <div>
+                <p className="font-bold text-[var(--ink)] text-sm">No Active In-Flight Order</p>
+                <p className="text-[var(--ink-2)]">You can use the Demo Simulator in the top navigation to spin up simulated faults or place demo orders.</p>
+              </div>
+            </div>
+            <Link href="/orders" className="text-xs font-bold text-[var(--accent)] hover:underline">
+              View Order History →
+            </Link>
+          </div>
+        )}
+
+        {/* ── Two Feature Hub Cards (Substantial & Actionable) ─────────────── */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {/* Swiggy Rescue Hub Card */}
+          <div className="p-6 rounded-2xl bg-white border border-[var(--line)] shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
+            <div>
+              <div className="flex justify-between items-start mb-4">
+                <div className="w-12 h-12 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center">
+                  <ShieldAlert size={26} />
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-orange-50 text-orange-700 border border-orange-200">
+                  Pre-Delivery In-Flight
+                </span>
+              </div>
+              <h4 className="text-base font-bold text-[var(--ink)] mb-1">Swiggy Rescue</h4>
+              <p className="text-xs text-[var(--ink-2)] mb-4 leading-relaxed">
+                Proactive order recovery system. If your delivery partner is stationary for &gt;6 mins, kitchen is delayed &gt;8 mins, or ETA slips &gt;15 mins, Rescue steps in with 3 explicit choices:
+              </p>
+              <ul className="text-xs space-y-2 text-[var(--ink)] mb-6">
+                <li className="flex items-center gap-2">
+                  <span className="text-orange-500 font-bold">1.</span>
+                  <span><strong>Wait with Credit:</strong> Immediate ₹50–₹100 wallet credit added instantly.</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-orange-500 font-bold">2.</span>
+                  <span><strong>Replace Order:</strong> Instant re-order from equivalent nearby kitchen.</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-orange-500 font-bold">3.</span>
+                  <span><strong>Cancel &amp; Refund:</strong> 100% full source refund without questions.</span>
+                </li>
+              </ul>
+            </div>
+            <Link
+              id="dashboard-rescue-hub-btn"
+              href="/rescue"
+              className="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-orange-50 text-[var(--accent-ink)] hover:bg-orange-100 border border-orange-200 flex items-center justify-center gap-2 transition-colors"
+            >
+              <span>Explore Swiggy Rescue Hub</span>
+              <ArrowRight size={14} />
+            </Link>
+          </div>
+
+          {/* Swiggy Resolve Hub Card */}
+          <div className="p-6 rounded-2xl bg-white border border-[var(--line)] shadow-sm hover:shadow-md transition-shadow flex flex-col justify-between">
+            <div>
+              <div className="flex justify-between items-start mb-4">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                  <Scale size={26} />
+                </div>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  Post-Delivery Settlement
+                </span>
+              </div>
+              <h4 className="text-base font-bold text-[var(--ink)] mb-1">Swiggy Resolve</h4>
+              <p className="text-xs text-[var(--ink-2)] mb-4 leading-relaxed">
+                Transparent issue resolution backed by the automated Fairness Engine. File complaints with photo evidence and receive instant entitlement previews:
+              </p>
+              <ul className="text-xs space-y-2 text-[var(--ink)] mb-6">
+                <li className="flex items-center gap-2">
+                  <span className="text-emerald-500 font-bold">✓</span>
+                  <span><strong>Wrong Item:</strong> Full item refund + proportional delivery fee credit.</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-emerald-500 font-bold">✓</span>
+                  <span><strong>Missing Item:</strong> Immediate item refund + 50% delivery fee credit.</span>
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="text-emerald-500 font-bold">✓</span>
+                  <span><strong>Late Delivery:</strong> Transparent tiered ₹50/₹75/₹100 credit.</span>
+                </li>
+              </ul>
+            </div>
+            <Link
+              id="dashboard-resolve-hub-btn"
+              href="/resolve"
+              className="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200 flex items-center justify-center gap-2 transition-colors"
+            >
+              <span>File Dispute in Swiggy Resolve</span>
+              <ArrowRight size={14} />
+            </Link>
+          </div>
+        </div>
+
+        {/* ── Recent Orders Section ───────────────────────────────────────── */}
+        <div className="p-6 rounded-2xl bg-white border border-[var(--line)] shadow-sm space-y-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h4 className="text-base font-bold text-[var(--ink)]">Recent Orders</h4>
+              <p className="text-xs text-[var(--ink-2)]">Eligible for Resolve post-delivery claims up to 24 hours after delivery</p>
+            </div>
+            <Link href="/orders" className="text-xs font-bold text-[var(--accent)] hover:underline flex items-center gap-1">
+              <span>View All ({completedOrders.length})</span>
+              <ChevronRight size={14} />
+            </Link>
+          </div>
+
+          {completedOrders.length === 0 ? (
+            <div className="p-8 text-center text-xs text-[var(--ink-2)]">
+              No previous orders found.
+            </div>
+          ) : (
+            <div className="divide-y divide-[var(--line)]">
+              {completedOrders.slice(0, 3).map((order: any) => (
+                <div key={order.id} className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-[var(--ink)]">{order.restaurant?.name ?? 'Restaurant'}</span>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800">
+                        {order.status}
+                      </span>
+                    </div>
+                    <p className="text-[var(--ink-2)]">
+                      {order.items?.map((i: any) => `${i.name} (x${i.qty})`).join(', ')} · <strong className="text-[var(--ink)]">{formatRupees(order.totalPaise)}</strong>
+                    </p>
+                    <p className="text-[11px] text-[var(--ink-2)]">
+                      Delivered {order.deliveredAt ? new Date(order.deliveredAt).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' }) : 'recently'}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={`/resolve?orderId=${order.id}`}
+                      className="px-3 py-1.5 rounded-lg border border-[var(--line)] hover:border-[var(--accent)] font-semibold text-xs text-[var(--ink)] hover:text-[var(--accent)] transition-colors"
+                    >
+                      Report Issue
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </AppShell>
+  );
+}

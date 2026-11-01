@@ -54,9 +54,49 @@ export class OrdersService {
   async getCompletedOrdersForCustomer(userId: string) {
     return this.prisma.order.findMany({
       where: { userId, status: { in: ['delivered', 'cancelled', 'failed'] } },
-      include: { items: true, restaurant: { select: { id: true, name: true } } },
+      include: { items: true, restaurant: { select: { id: true, name: true, cuisine: true } } },
       orderBy: { createdAt: 'desc' },
       take: 20,
     });
+  }
+
+  async getAllOrdersForCustomer(userId: string) {
+    return this.prisma.order.findMany({
+      where: { userId },
+      include: {
+        items: true,
+        restaurant: { select: { id: true, name: true, cuisine: true, lat: true, lng: true } },
+        rider: { select: { id: true, name: true, lat: true, lng: true, status: true } },
+        health: true,
+        rescueCases: { select: { id: true, choice: true, status: true, optionsJson: true } },
+        resolveCases: { select: { id: true, issue: true, status: true, confidence: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+  }
+
+  async getCustomerRecoveryHistory(userId: string) {
+    const orders = await this.prisma.order.findMany({
+      where: { userId },
+      select: { id: true },
+    });
+    const orderIds = orders.map((o) => o.id);
+
+    const ledgerEntries = await this.prisma.ledgerEntry.findMany({
+      where: { orderId: { in: orderIds } },
+      include: {
+        order: {
+          select: {
+            id: true,
+            totalPaise: true,
+            restaurant: { select: { name: true } },
+          },
+        },
+      },
+      orderBy: { at: 'desc' },
+    });
+
+    return ledgerEntries;
   }
 }

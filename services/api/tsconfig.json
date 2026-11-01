@@ -3,14 +3,11 @@
   "compilerOptions": {
     "module": "CommonJS",
     "moduleResolution": "Node",
+    "rootDir": "./src",
     "outDir": "./dist",
     "baseUrl": "./",
     "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "paths": {
-      "@swiggy/types": ["../../packages/types/src/index.ts"],
-      "@swiggy/engines": ["../../packages/engines/src/index.ts"]
-    }
+    "experimentalDecorators": true
   },
-  "include": ["src/**/*", "prisma/**/*"]
+  "include": ["src/**/*"]
 }

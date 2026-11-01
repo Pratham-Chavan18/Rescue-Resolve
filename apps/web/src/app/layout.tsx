@@ -3,7 +3,7 @@ import './globals.css';
 import { Providers } from './providers';
 
 export const metadata: Metadata = {
-  title: 'Swiggy Recovery — Rescue + Resolve',
+  title: 'Swiggy Unified Recovery — Rescue + Resolve',
   description: 'Proactive order recovery and transparent dispute resolution for every Swiggy order.',
 };
 

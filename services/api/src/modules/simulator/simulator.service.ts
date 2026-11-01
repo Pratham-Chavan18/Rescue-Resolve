@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit, Logger, NotFoundException } from '@nestjs/com
 import { PrismaService } from '../../prisma/prisma.service';
 import { HealthService } from '../health/health.service';
 import { RescueService } from '../rescue/rescue.service';
+import { RealtimeService } from '../realtime/realtime.service';
 import type { SimFault, HealthSignalKind } from '@swiggy/types';
 
 /**
@@ -23,6 +24,7 @@ export class SimulatorService implements OnModuleInit {
     private readonly prisma: PrismaService,
     private readonly healthService: HealthService,
     private readonly rescueService: RescueService,
+    private readonly realtime: RealtimeService,
   ) {}
 
   onModuleInit() {
@@ -98,6 +100,45 @@ export class SimulatorService implements OnModuleInit {
       if (health && (health.state === 'at_risk' || health.state === 'failing')) {
         await this.rescueService.createCase(orderId, fault.toUpperCase());
       }
+    } else if (fault === 'wrong_item') {
+      const resolveCase = await this.prisma.resolveCase.create({
+        data: {
+          orderId,
+          userId: order.userId,
+          issue: 'wrong_item',
+          status: 'escalated',
+          confidence: 'low',
+          decisionJson: {
+            destination: 'source',
+            refund: { itemAmount: 28000, deliveryFeeShare: 4000, tipRefund: 0, total: 32000 },
+            credit: { creditAmount: 0, deliveryFeeShare: 0, goodwillCredit: 0, total: 0 },
+            total: 32000,
+            confidence: 'low',
+            route: 'agent',
+            rulesTriggered: [
+              { code: 'W-1', description: 'Wrong item reported with photo evidence' },
+              { code: 'H-1', description: 'Claim exceeds auto-resolve threshold — routed to agent queue' },
+            ],
+            notes: 'Flagged for human review under rule H-1',
+          },
+          evidence: {
+            create: [
+              {
+                kind: 'photo',
+                url: '/uploads/demo-evidence.jpg',
+                verdict: 'ambiguous',
+              },
+            ],
+          },
+        },
+      });
+      this.realtime.emitToAgentQueue({
+        t: 'agent.case.new',
+        caseId: resolveCase.id,
+        issueKind: 'wrong_item',
+        confidence: 'low',
+        totalPaise: 48000,
+      });
     }
   }
 

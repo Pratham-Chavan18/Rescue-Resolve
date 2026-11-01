@@ -84,4 +84,100 @@ export class PartnersService {
     await this.prisma.order.update({ where: { id: orderId }, data: { status: 'rider_assigned' } });
     return { ok: true };
   }
+
+  async acceptOrder(orderId: string, restaurantId: string) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new NotFoundException('Order not found');
+    if (order.restaurantId !== restaurantId) throw new ForbiddenException('Not your restaurant\'s order');
+
+    await this.prisma.order.update({
+      where: { id: orderId },
+      data: { status: 'accepted' },
+    });
+
+    await this.prisma.orderEvent.create({
+      data: { orderId, type: 'accepted', at: new Date() },
+    });
+
+    this.realtime.emitToOrder(orderId, {
+      t: 'health.changed',
+      orderId,
+      state: 'on_track',
+      etaAt: order.promisedAt.toISOString(),
+      triggers: [],
+    });
+
+    return { ok: true, status: 'accepted' };
+  }
+
+  async markReady(orderId: string, restaurantId: string) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new NotFoundException('Order not found');
+    if (order.restaurantId !== restaurantId) throw new ForbiddenException('Not your restaurant\'s order');
+
+    await this.prisma.order.update({
+      where: { id: orderId },
+      data: { status: 'packed' },
+    });
+
+    await this.prisma.orderEvent.create({
+      data: { orderId, type: 'packed', at: new Date() },
+    });
+
+    return { ok: true, status: 'packed' };
+  }
+
+  async pickupOrder(orderId: string, riderId: string) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new NotFoundException('Order not found');
+    if (order.riderId !== riderId) throw new ForbiddenException('Not your assigned delivery');
+
+    await this.prisma.order.update({
+      where: { id: orderId },
+      data: { status: 'picked_up' },
+    });
+
+    await this.prisma.orderEvent.create({
+      data: { orderId, type: 'picked_up', at: new Date() },
+    });
+
+    return { ok: true, status: 'picked_up' };
+  }
+
+  async deliverOrder(orderId: string, riderId: string) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new NotFoundException('Order not found');
+    if (order.riderId !== riderId) throw new ForbiddenException('Not your assigned delivery');
+
+    await this.prisma.order.update({
+      where: { id: orderId },
+      data: { status: 'delivered', deliveredAt: new Date() },
+    });
+
+    await this.prisma.orderEvent.create({
+      data: { orderId, type: 'delivered', at: new Date() },
+    });
+
+    return { ok: true, status: 'delivered' };
+  }
+
+  async reportRiderIssue(orderId: string, riderId: string, reason: string) {
+    const order = await this.prisma.order.findUnique({ where: { id: orderId } });
+    if (!order) throw new NotFoundException('Order not found');
+    if (order.riderId !== riderId) throw new ForbiddenException('Not your assigned delivery');
+
+    await this.prisma.orderEvent.create({
+      data: { orderId, type: 'rider_delay_reported', payload: { reason }, at: new Date() },
+    });
+
+    this.realtime.emitToOrder(orderId, {
+      t: 'health.changed',
+      orderId,
+      state: 'at_risk',
+      etaAt: new Date(Date.now() + 20 * 60000).toISOString(),
+      triggers: ['RIDER_STUCK'],
+    });
+
+    return { ok: true, reason };
+  }
 }

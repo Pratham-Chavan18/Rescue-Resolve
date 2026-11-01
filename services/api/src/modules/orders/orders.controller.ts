@@ -13,6 +13,21 @@ export class OrdersController {
     return this.ordersService.getActiveOrderForCustomer(req.user.sub);
   }
 
+  @Get('all')
+  async getAllOrders(@Request() req: { user: JwtPayload }) {
+    return this.ordersService.getAllOrdersForCustomer(req.user.sub);
+  }
+
+  @Get('completed')
+  async getCompletedOrders(@Request() req: { user: JwtPayload }) {
+    return this.ordersService.getCompletedOrdersForCustomer(req.user.sub);
+  }
+
+  @Get('recovery/history')
+  async getCustomerRecoveryHistory(@Request() req: { user: JwtPayload }) {
+    return this.ordersService.getCustomerRecoveryHistory(req.user.sub);
+  }
+
   @Get(':id')
   async getOrder(@Param('id') id: string, @Request() req: { user: JwtPayload }) {
     return this.ordersService.getOrderById(id, req.user);

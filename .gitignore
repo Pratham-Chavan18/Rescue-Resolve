@@ -11,3 +11,6 @@ prisma/dev.db
 test-results/
 playwright-report/
 *.tsbuildinfo
+.agents/
+docs/
+
