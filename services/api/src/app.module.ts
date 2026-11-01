@@ -11,11 +11,15 @@ import { AgentModule } from './modules/agent/agent.module';
 import { SimulatorModule } from './modules/simulator/simulator.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { StorageModule } from './modules/storage/storage.module';
+import { RedisModule } from './modules/redis/redis.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
+    StorageModule,
+    RedisModule,
     AuthModule,
     OrdersModule,
     HealthModule,

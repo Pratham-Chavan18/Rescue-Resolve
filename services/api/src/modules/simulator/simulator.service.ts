@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { HealthService } from '../health/health.service';
 import { RescueService } from '../rescue/rescue.service';
@@ -16,7 +16,7 @@ import type { SimFault, HealthSignalKind } from '@swiggy/types';
  * Fault injection injects specific signal types on demand.
  */
 @Injectable()
-export class SimulatorService implements OnModuleInit {
+export class SimulatorService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(SimulatorService.name);
   private tickTimer: NodeJS.Timeout | null = null;
 
@@ -31,6 +31,14 @@ export class SimulatorService implements OnModuleInit {
     const tickMs = parseInt(process.env['SIMULATOR_TICK_MS'] ?? '10000', 10);
     this.tickTimer = setInterval(() => this.tick(), tickMs);
     this.logger.log(`Simulator started — tick every ${tickMs}ms`);
+  }
+
+  onModuleDestroy() {
+    if (this.tickTimer) {
+      clearInterval(this.tickTimer);
+      this.tickTimer = null;
+      this.logger.log('Simulator stopped cleanly');
+    }
   }
 
   /** Periodic lifecycle tick — advances demo order state */

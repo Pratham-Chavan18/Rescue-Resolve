@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 import type { ServerEvent } from '@swiggy/types';
 
-const WS_URL = process.env['NEXT_PUBLIC_WS_URL'] ?? 'http://localhost:4000';
+const WS_URL = process.env['NEXT_PUBLIC_WS_URL'] ?? process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:4000';
 
 let socketInstance: Socket | null = null;
 

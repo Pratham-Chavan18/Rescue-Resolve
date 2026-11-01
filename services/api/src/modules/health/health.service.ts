@@ -83,4 +83,13 @@ export class HealthService {
   async getHealthForOrder(orderId: string) {
     return this.prisma.orderHealth.findUnique({ where: { orderId } });
   }
+
+  async checkDatabase(): Promise<boolean> {
+    try {
+      await this.prisma.$queryRaw`SELECT 1`;
+      return true;
+    } catch {
+      return false;
+    }
+  }
 }

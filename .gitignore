@@ -12,5 +12,6 @@ test-results/
 playwright-report/
 *.tsbuildinfo
 .agents/
-docs/
+docs/*
+!docs/DEPLOYMENT.md
 scratch/

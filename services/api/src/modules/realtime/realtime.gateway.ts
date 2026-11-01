@@ -6,6 +6,7 @@ import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../../prisma/prisma.service';
 import { RealtimeService } from './realtime.service';
+import { getAllowedOrigins, isOriginAllowed } from '../../common/cors.util';
 import type { JwtPayload } from '@swiggy/types';
 
 /**
@@ -13,7 +14,17 @@ import type { JwtPayload } from '@swiggy/types';
  * CONSTRAINTS §4.15: server-side role check for every socket room join.
  */
 @WebSocketGateway({
-  cors: { origin: process.env['FRONTEND_URL'] ?? 'http://localhost:3000', credentials: true },
+  cors: {
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+      const allowed = getAllowedOrigins();
+      if (isOriginAllowed(origin, allowed)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Origin ${origin} not allowed by Socket.IO CORS`));
+      }
+    },
+    credentials: true,
+  },
   namespace: '/',
 })
 export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {

@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Inject,
   NotFoundException,
   BadRequestException,
   ConflictException,
@@ -9,10 +10,10 @@ import {
 import { PrismaService } from '../../prisma/prisma.service';
 import { LedgerService } from '../ledger/ledger.service';
 import { RealtimeService } from '../realtime/realtime.service';
+import { StorageService } from '../storage/storage.interface';
+import { STORAGE_SERVICE } from '../storage/storage.module';
 import { decide } from '@swiggy/engines';
 import type { IssueKind, FairnessDecision, Paise } from '@swiggy/types';
-import * as path from 'path';
-import * as fs from 'fs';
 
 // CONSTRAINTS §4.16: MIME and size validation for uploads
 const ALLOWED_MIMES = (process.env['UPLOAD_ALLOWED_MIMES'] ?? 'image/jpeg,image/png,image/webp').split(',');
@@ -24,6 +25,7 @@ export class ResolveService {
     private readonly prisma: PrismaService,
     private readonly ledger: LedgerService,
     private readonly realtime: RealtimeService,
+    @Inject(STORAGE_SERVICE) private readonly storageService: StorageService,
   ) {}
 
   async createCase(userId: string, orderId: string, issue: IssueKind) {
@@ -61,18 +63,24 @@ export class ResolveService {
         throw new PayloadTooLargeException(`File exceeds 2 MB limit`);
       }
 
-      // Store file — never inline as base64 (CONSTRAINTS §4.16)
-      const uploadsDir = path.join(process.cwd(), 'uploads', caseId);
-      fs.mkdirSync(uploadsDir, { recursive: true });
+      // Store file in durable storage (Supabase in prod, local in dev)
       const filename = `${Date.now()}-${file.originalname.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-      const filePath = path.join(uploadsDir, filename);
-      fs.writeFileSync(filePath, file.buffer);
+      const storagePath = `${caseId}/${filename}`;
 
-      const url = `/uploads/${caseId}/${filename}`;
+      try {
+        const { path: storedPath } = await this.storageService.upload(
+          storagePath,
+          file.buffer,
+          file.mimetype,
+        );
 
-      await this.prisma.evidence.create({
-        data: { caseId, kind: 'photo', url, verdict: 'pending' },
-      });
+        await this.prisma.evidence.create({
+          data: { caseId, kind: 'photo', url: storedPath, verdict: 'pending' },
+        });
+      } catch (err: any) {
+        await this.storageService.delete(storagePath).catch(() => {});
+        throw err;
+      }
     }
 
     if (lineItemIds && lineItemIds.length > 0) {
@@ -213,11 +221,30 @@ export class ResolveService {
   }
 
   async getCasesForCustomer(userId: string) {
-    return this.prisma.resolveCase.findMany({
+    const cases = await this.prisma.resolveCase.findMany({
       where: { userId },
       include: { evidence: true, order: { select: { id: true } } },
       orderBy: { createdAt: 'desc' },
     });
+
+    return Promise.all(
+      cases.map(async (c) => {
+        const enrichedEvidence = await Promise.all(
+          c.evidence.map(async (ev) => {
+            if (ev.kind === 'photo' && ev.url) {
+              try {
+                const signed = await this.storageService.getSignedUrl(ev.url);
+                return { ...ev, url: signed };
+              } catch {
+                return ev;
+              }
+            }
+            return ev;
+          }),
+        );
+        return { ...c, evidence: enrichedEvidence };
+      }),
+    );
   }
 
   async getCaseById(caseId: string, userId: string) {
@@ -227,7 +254,40 @@ export class ResolveService {
     });
     if (!resolveCase) throw new NotFoundException('Case not found');
     if (resolveCase.userId !== userId) throw new BadRequestException('Not your case');
-    return resolveCase;
+
+    const enrichedEvidence = await Promise.all(
+      resolveCase.evidence.map(async (ev) => {
+        if (ev.kind === 'photo' && ev.url) {
+          try {
+            const signed = await this.storageService.getSignedUrl(ev.url);
+            return { ...ev, url: signed };
+          } catch {
+            return ev;
+          }
+        }
+        return ev;
+      }),
+    );
+
+    return { ...resolveCase, evidence: enrichedEvidence };
+  }
+
+  async getEvidenceSignedUrl(caseId: string, evidenceId: string, userId: string, role: string) {
+    const resolveCase = await this.prisma.resolveCase.findUnique({ where: { id: caseId } });
+    if (!resolveCase) throw new NotFoundException('Case not found');
+    if (role !== 'agent' && resolveCase.userId !== userId) {
+      throw new BadRequestException('Not authorized to access evidence for this case');
+    }
+
+    const evidence = await this.prisma.evidence.findFirst({
+      where: { id: evidenceId, caseId },
+    });
+    if (!evidence || !evidence.url) {
+      throw new NotFoundException('Evidence photo not found');
+    }
+
+    const signedUrl = await this.storageService.getSignedUrl(evidence.url);
+    return { signedUrl };
   }
 
   private async runEngine(

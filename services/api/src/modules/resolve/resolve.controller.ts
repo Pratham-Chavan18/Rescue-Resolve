@@ -58,6 +58,15 @@ export class ResolveController {
     return this.resolveService.addEvidence(id, req.user.sub, file, itemIds);
   }
 
+  @Get('cases/:id/evidence/:evidenceId/url')
+  async getEvidenceSignedUrl(
+    @Param('id') id: string,
+    @Param('evidenceId') evidenceId: string,
+    @Request() req: { user: JwtPayload },
+  ) {
+    return this.resolveService.getEvidenceSignedUrl(id, evidenceId, req.user.sub, req.user.role);
+  }
+
   @Get('cases/:id/preview')
   async previewDecision(@Param('id') id: string, @Request() req: { user: JwtPayload }) {
     return this.resolveService.previewDecision(id, req.user.sub);

@@ -1,7 +1,9 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, Inject, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LedgerService } from '../ledger/ledger.service';
 import { RealtimeService } from '../realtime/realtime.service';
+import { StorageService } from '../storage/storage.interface';
+import { STORAGE_SERVICE } from '../storage/storage.module';
 import type { AgentAction, FairnessDecision, Paise } from '@swiggy/types';
 
 const VALID_REASON_CODES = [
@@ -20,6 +22,7 @@ export class AgentService {
     private readonly prisma: PrismaService,
     private readonly ledger: LedgerService,
     private readonly realtime: RealtimeService,
+    @Inject(STORAGE_SERVICE) private readonly storageService: StorageService,
   ) {}
 
   async getCaseQueue() {
@@ -50,7 +53,22 @@ export class AgentService {
       },
     });
     if (!resolveCase) throw new NotFoundException('Case not found');
-    return resolveCase;
+
+    const enrichedEvidence = await Promise.all(
+      resolveCase.evidence.map(async (ev) => {
+        if (ev.kind === 'photo' && ev.url) {
+          try {
+            const signed = await this.storageService.getSignedUrl(ev.url);
+            return { ...ev, url: signed };
+          } catch {
+            return ev;
+          }
+        }
+        return ev;
+      }),
+    );
+
+    return { ...resolveCase, evidence: enrichedEvidence };
   }
 
   /**
