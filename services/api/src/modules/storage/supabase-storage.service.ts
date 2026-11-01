@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import * as path from 'path';
 import { StorageService } from './storage.interface';
 
 @Injectable()
@@ -48,29 +49,34 @@ export class SupabaseStorageService implements StorageService {
     }
   }
 
-  private sanitizePath(objectPath: string): string {
-    const sanitized = objectPath.replace(/\\/g, '/').replace(/^\/+/, '');
-    const segments = sanitized.split('/');
-    if (segments.some((segment) => segment === '..' || segment === '.' || segment === '')) {
+  private getSafeObjectKey(objectPath: string): string {
+    if (!objectPath || typeof objectPath !== 'string' || objectPath.includes('..') || !/^[a-zA-Z0-9_\-./]+$/.test(objectPath)) {
       throw new Error('Invalid storage path: path traversal detected');
     }
-    if (!/^[a-zA-Z0-9_\-\.\/]+$/.test(sanitized)) {
-      throw new Error('Invalid storage path: illegal characters');
+    const safeSegments = objectPath
+      .replace(/\\/g, '/')
+      .split('/')
+      .map((seg) => path.basename(seg))
+      .filter((seg) => seg && seg !== '.' && seg !== '..');
+
+    if (safeSegments.length === 0) {
+      throw new Error('Invalid storage path: empty path');
     }
-    return sanitized;
+    return safeSegments.join('/');
   }
 
   async upload(objectPath: string, buffer: Buffer, mimetype: string): Promise<{ path: string }> {
-    const safePath = this.sanitizePath(objectPath);
+    const safePath = this.getSafeObjectKey(objectPath);
+    const safeKey = safePath.split('/').map((s) => path.basename(s)).join('/');
     const { data, error } = await this.client.storage
       .from(this.bucket)
-      .upload(safePath, buffer, {
+      .upload(safeKey, buffer, {
         contentType: mimetype,
         upsert: true,
       });
 
     if (error) {
-      this.logger.error(`Supabase upload error for path "${safePath}": ${error.message}`);
+      this.logger.error(`Supabase upload error for path "${safeKey}": ${error.message}`);
       throw new Error(`Failed to upload evidence to Supabase Storage: ${error.message}`);
     }
 
@@ -78,13 +84,14 @@ export class SupabaseStorageService implements StorageService {
   }
 
   async getSignedUrl(objectPath: string, expiresInSeconds = 3600): Promise<string> {
-    const safePath = this.sanitizePath(objectPath);
+    const safePath = this.getSafeObjectKey(objectPath);
+    const safeKey = safePath.split('/').map((s) => path.basename(s)).join('/');
     const { data, error } = await this.client.storage
       .from(this.bucket)
-      .createSignedUrl(safePath, expiresInSeconds);
+      .createSignedUrl(safeKey, expiresInSeconds);
 
     if (error || !data?.signedUrl) {
-      this.logger.error(`Failed to generate signed URL for "${safePath}": ${error?.message}`);
+      this.logger.error(`Failed to generate signed URL for "${safeKey}": ${error?.message}`);
       throw new Error(`Failed to generate signed URL: ${error?.message}`);
     }
 
@@ -92,10 +99,12 @@ export class SupabaseStorageService implements StorageService {
   }
 
   async delete(objectPath: string): Promise<void> {
-    const safePath = this.sanitizePath(objectPath);
-    const { error } = await this.client.storage.from(this.bucket).remove([safePath]);
+    const safePath = this.getSafeObjectKey(objectPath);
+    const safeKey = safePath.split('/').map((s) => path.basename(s)).join('/');
+    const { error } = await this.client.storage.from(this.bucket).remove([safeKey]);
     if (error) {
-      this.logger.warn(`Failed to delete storage object "${safePath}": ${error.message}`);
+      this.logger.warn(`Failed to delete storage object "${safeKey}": ${error.message}`);
     }
   }
 }
+
