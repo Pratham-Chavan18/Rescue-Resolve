@@ -38,12 +38,14 @@ export class OrdersService {
 
     if (!order) throw new NotFoundException('Order not found');
 
-    // Authorization: customer can only see own orders; agent can see all
     if (user.role === 'customer' && order.userId !== user.sub) {
       throw new ForbiddenException('Not your order');
     }
     if (user.role === 'restaurant' && order.restaurantId !== user.restaurantId) {
       throw new ForbiddenException('Not your restaurant\'s order');
+    }
+    if (user.role === 'rider' && order.riderId !== user.riderId) {
+      throw new ForbiddenException('Not your assigned order');
     }
 
     return order;

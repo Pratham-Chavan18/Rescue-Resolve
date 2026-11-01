@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { LedgerService } from '../ledger/ledger.service';
 import { RealtimeService } from '../realtime/realtime.service';
@@ -140,6 +140,7 @@ export class RescueService {
       include: { items: true },
     });
     if (!order) throw new NotFoundException('Order not found');
+    if (order.userId !== userId) throw new ForbiddenException('Not your order');
 
     // Validate choice is in the options snapshot
     const options = (rescueCase.optionsJson as unknown) as RescueOption[];

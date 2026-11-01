@@ -33,14 +33,14 @@ export default function RestaurantPage() {
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ['restaurant-orders'],
-    queryFn: () => partnersApi.getRestaurantOrders(token),
+    queryFn: () => partnersApi.getRestaurantOrders(token!),
     refetchInterval: 20000,
     enabled: !!token,
   });
 
   const confirmMutation = useMutation({
     mutationFn: ({ orderId, minutes }: { orderId: string; minutes: number }) =>
-      partnersApi.confirmPacking(orderId, minutes, token),
+      partnersApi.confirmPacking(orderId, minutes, token!),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['restaurant-orders'] }),
   });
 

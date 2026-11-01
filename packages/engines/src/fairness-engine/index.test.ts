@@ -67,6 +67,23 @@ describe('H-1: high-value order → human review', () => {
     const result = decide(claim, baseOrder, smallHistory);
     expect(result.outcome).not.toBe('human_review');
   });
+
+  it('routes customer who reached 30-day rolling credit cap (≥₹3,000) to human review', () => {
+    const cappedHistory: CustomerHistory = {
+      claimCount: 1,
+      totalOrders: 20,
+      rollingCreditPaise: 300000 as Paise, // ₹3,000
+    };
+    const claim: Claim = {
+      issueKind: 'missing_item',
+      claimedItems: [{ name: 'Chips', pricePaise: 5000 as Paise, qty: 1 }],
+      evidence: [],
+    };
+    const result = decide(claim, baseOrder, cappedHistory);
+    expect(result.confidence).toBe('low');
+    expect(result.outcome).toBe('human_review');
+    expect(result.ruleTrace.find((r) => r.ruleId === 'H-1')?.fired).toBe(true);
+  });
 });
 
 // ─── W-1: Wrong item, verified photo → source refund ─────────────────────────

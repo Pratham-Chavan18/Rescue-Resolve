@@ -87,9 +87,19 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
       if (!order || order.userId !== user.sub) {
         return { error: 'Not authorized for this order room' };
       }
+    } else if (user.role === 'restaurant') {
+      const order = await this.prisma.order.findUnique({ where: { id: data.orderId } });
+      if (!order || order.restaurantId !== user.restaurantId) {
+        return { error: 'Not authorized for this order room' };
+      }
+    } else if (user.role === 'rider') {
+      const order = await this.prisma.order.findUnique({ where: { id: data.orderId } });
+      if (!order || order.riderId !== user.riderId) {
+        return { error: 'Not authorized for this order room' };
+      }
+    } else if (user.role !== 'agent') {
+      return { error: 'Not authorized for this order room' };
     }
-    // Agents can join any order room
-    // Restaurant/rider authorization handled by their own rooms
 
     await client.join(`order:${data.orderId}`);
     return { ok: true };

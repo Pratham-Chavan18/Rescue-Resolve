@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { RescueService } from './rescue.service';
-import { NotFoundException, ConflictException, BadRequestException } from '@nestjs/common';
+import { NotFoundException, ConflictException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import type { PrismaService } from '../../prisma/prisma.service';
 import type { LedgerService } from '../ledger/ledger.service';
 import type { RealtimeService } from '../realtime/realtime.service';
@@ -65,6 +65,7 @@ describe('RescueService (Choice Idempotency & Workflow)', () => {
 
   const mockOrder = {
     id: 'order_1',
+    userId: 'user_1',
     restaurantId: 'rest_1',
     totalPaise: 25000,
     items: [{ id: 'item_1', name: 'Biryani', isVeg: false }],
@@ -144,5 +145,15 @@ describe('RescueService (Choice Idempotency & Workflow)', () => {
     await expect(
       service.recordChoice('case_1', 'user_1', 'replace' as any)
     ).rejects.toThrow(BadRequestException);
+  });
+
+  it('throws ForbiddenException if user does not own the order (IDOR guard)', async () => {
+    mockPrisma.rescueCase.findUnique.mockResolvedValue(mockOpenCase);
+    mockPrisma.order.findUnique.mockResolvedValue(mockOrder);
+
+    await expect(
+      service.recordChoice('case_1', 'attacker_user_2', 'wait')
+    ).rejects.toThrow(ForbiddenException);
+    expect(mockLedger.append).not.toHaveBeenCalled();
   });
 });

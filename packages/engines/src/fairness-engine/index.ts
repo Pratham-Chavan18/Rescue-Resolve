@@ -47,7 +47,17 @@ export interface Claim {
 
 // Human-review cap: orders above this value go to low confidence / human review
 // CONSTRAINTS §5.21 and PRD §8: configurable via env, defaulting to ₹1,500
-const HIGH_VALUE_CAP_PAISE = parseInt(process.env['HIGH_VALUE_CAP_PAISE'] ?? '150000', 10);
+const HIGH_VALUE_CAP_PAISE =
+  typeof process !== 'undefined' && process.env?.['HIGH_VALUE_CAP_PAISE']
+    ? parseInt(process.env['HIGH_VALUE_CAP_PAISE'], 10)
+    : 150000;
+
+// Rolling 30-day automatic credit cap:
+// CONSTRAINTS §5.21 and PRD §8: configurable via env, defaulting to ₹3,000 (300,000 paise)
+const ROLLING_CREDIT_CAP_PAISE =
+  typeof process !== 'undefined' && process.env?.['ROLLING_CREDIT_CAP_PAISE']
+    ? parseInt(process.env['ROLLING_CREDIT_CAP_PAISE'], 10)
+    : 300000;
 
 // ─── Output ───────────────────────────────────────────────────────────────────
 
@@ -73,8 +83,9 @@ export function decide(
   const ruleTrace: RuleTrace[] = [];
   const lineItems: EntitlementLineItem[] = [];
 
-  // ── H-1: High-value or conflicting → human review ─────────────────────────
+  // ── H-1: High-value, rolling cap reached, or conflicting → human review ────
   const isHighValue = order.totalPaise > HIGH_VALUE_CAP_PAISE;
+  const isRollingCapExceeded = history.rollingCreditPaise >= ROLLING_CREDIT_CAP_PAISE;
   const hasConflictingSignals =
     history.claimCount > 0 &&
     history.claimCount / Math.max(1, history.totalOrders) > 0.3 &&
@@ -82,16 +93,18 @@ export function decide(
 
   ruleTrace.push({
     ruleId: 'H-1',
-    ruleName: 'High-value or conflicting signals → human review',
-    fired: isHighValue || hasConflictingSignals,
+    ruleName: 'High-value, credit cap, or conflicting signals → human review',
+    fired: isHighValue || isRollingCapExceeded || hasConflictingSignals,
     reason: isHighValue
       ? `Order value ${order.totalPaise} paise > cap ${HIGH_VALUE_CAP_PAISE} paise`
-      : hasConflictingSignals
-        ? `Claim rate ${history.claimCount}/${history.totalOrders} > 30% with ≥10 orders`
-        : 'Order value and claim rate within thresholds',
+      : isRollingCapExceeded
+        ? `Rolling 30-day credit ${history.rollingCreditPaise} paise reached cap ${ROLLING_CREDIT_CAP_PAISE} paise`
+        : hasConflictingSignals
+          ? `Claim rate ${history.claimCount}/${history.totalOrders} > 30% with ≥10 orders`
+          : 'Order value, rolling credit, and claim rate within thresholds',
   });
 
-  if (isHighValue || hasConflictingSignals) {
+  if (isHighValue || isRollingCapExceeded || hasConflictingSignals) {
     return {
       confidence: 'low',
       outcome: 'human_review',
@@ -100,7 +113,9 @@ export function decide(
       destination: 'wallet',
       reason: isHighValue
         ? 'Order value above ₹1,500 — a specialist will review and respond within 15 minutes.'
-        : 'Your account history has been flagged for specialist review.',
+        : isRollingCapExceeded
+          ? 'Automatic credit limit reached for the last 30 days — a specialist will review your case.'
+          : 'Your account history has been flagged for specialist review.',
       ruleTrace,
     };
   }

@@ -55,28 +55,28 @@ export default function AgentPage() {
 
   const { data: queue = [], isLoading } = useQuery({
     queryKey: ['agent-queue'],
-    queryFn: () => agentApi.getCaseQueue(token),
+    queryFn: () => agentApi.getCaseQueue(token!),
     refetchInterval: 15000,
     enabled: !!token,
   });
 
   const { data: casePack } = useQuery({
     queryKey: ['agent-case', selectedCase?.id],
-    queryFn: () => agentApi.getCasePack(selectedCase.id, token),
+    queryFn: () => agentApi.getCasePack(selectedCase!.id, token!),
     enabled: !!selectedCase && !!token,
   });
 
   const actionMutation = useMutation({
     mutationFn: () =>
       agentApi.takeAction(
-        selectedCase.id,
+        selectedCase!.id,
         {
           action: actionForm.action,
           reasonCode: actionForm.reasonCode,
           amountPaise: actionForm.amount ? parseInt(actionForm.amount) * 100 : undefined,
           note: actionForm.note || undefined,
         },
-        token,
+        token!,
       ),
     onSuccess: () => {
       setSelectedCase(null);

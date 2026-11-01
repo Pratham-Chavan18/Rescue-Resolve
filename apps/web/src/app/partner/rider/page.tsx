@@ -20,13 +20,13 @@ export default function RiderPage() {
 
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['rider-tasks'],
-    queryFn: () => partnersApi.getRiderTasks(token),
+    queryFn: () => partnersApi.getRiderTasks(token!),
     refetchInterval: 15000,
     enabled: !!token,
   });
 
   const acceptMutation = useMutation({
-    mutationFn: (orderId: string) => partnersApi.acceptReassignment(orderId, token),
+    mutationFn: (orderId: string) => partnersApi.acceptReassignment(orderId, token!),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['rider-tasks'] }),
   });
 

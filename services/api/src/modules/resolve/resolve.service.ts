@@ -273,14 +273,26 @@ export class ResolveService {
   }
 
   private async getCustomerHistory(userId: string) {
-    const [orderCount, caseCount] = await Promise.all([
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+    const [orderCount, caseCount, creditEntries] = await Promise.all([
       this.prisma.order.count({ where: { userId } }),
       this.prisma.resolveCase.count({ where: { userId } }),
+      this.prisma.ledgerEntry.findMany({
+        where: {
+          order: { userId },
+          kind: 'credit',
+          at: { gte: thirtyDaysAgo },
+        },
+        select: { amountPaise: true },
+      }),
     ]);
+
+    const rollingCreditPaise = creditEntries.reduce((sum, e) => sum + e.amountPaise, 0);
+
     return {
       claimCount: caseCount,
       totalOrders: orderCount,
-      rollingCreditPaise: 0 as Paise,
+      rollingCreditPaise: rollingCreditPaise as Paise,
     };
   }
 }
