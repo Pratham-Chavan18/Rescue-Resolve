@@ -101,20 +101,26 @@ Configure the exact deployment commands:
   ```bash
   pnpm install --frozen-lockfile && pnpm --filter @swiggy/api exec prisma generate && pnpm exec turbo run build --filter=...@swiggy/api --force
   ```
-- **Pre-Deploy Command:**
+- **Start Command (Option A — Free Tier / Chained Migration & Startup - Recommended):**
   ```bash
-  pnpm --filter @swiggy/api run prisma:migrate:deploy
+  pnpm --filter @swiggy/api run prisma:migrate:deploy && pnpm --filter @swiggy/api start
   ```
-- **Start Command:**
+  *(If your Render tier does not support Pre-Deploy Commands, chaining with `&&` in the Start Command ensures pending migrations run in the container before the API listens on port 10000.)*
+
+- **Start Command (Option B — Standard Startup if migrated externally or via Paid Pre-Deploy):**
   ```bash
   pnpm --filter @swiggy/api start
   ```
+
+- **Pre-Deploy Command (Only available on Render Paid Plans — leave blank on Free tier):**
+  ```bash
+  pnpm --filter @swiggy/api run prisma:migrate:deploy
+  ```
+
 - **Health Check Path:**
   ```
   /health
   ```
-
-> 💡 **Important:** The Pre-Deploy Command runs `prisma migrate deploy` automatically before starting the new API instance, guaranteeing that tables (`orders`, `users`, etc.) exist before traffic arrives.
 
 ### Step 4.3: Render Environment Variables
 Add the following environment variables in Render's **Environment** tab:
