@@ -103,7 +103,7 @@ Configure the exact deployment commands:
   ```
 - **Pre-Deploy Command:**
   ```bash
-  pnpm --filter @swiggy/api exec prisma migrate deploy
+  pnpm --filter @swiggy/api run prisma:migrate:deploy
   ```
 - **Start Command:**
   ```bash
@@ -114,28 +114,30 @@ Configure the exact deployment commands:
   /health
   ```
 
+> 💡 **Important:** The Pre-Deploy Command runs `prisma migrate deploy` automatically before starting the new API instance, guaranteeing that tables (`orders`, `users`, etc.) exist before traffic arrives.
+
 ### Step 4.3: Render Environment Variables
 Add the following environment variables in Render's **Environment** tab:
 
-| Key | Example Value | Description |
-| :--- | :--- | :--- |
-| `NODE_ENV` | `production` | Production mode |
-| `DATABASE_URL` | `postgresql://postgres.[REF]:[PASS]@[HOST]:5432/postgres` | Supabase Session Pooler connection string |
-| `JWT_SECRET` | `generate-random-secret-at-least-32-chars` | HS256 secret for signing auth tokens |
-| `JWT_EXPIRES_IN` | `7d` | Token expiry duration |
-| `FRONTEND_URL` | `https://your-app.vercel.app` | Allowed CORS origin (comma-separated list for multiples) |
-| `DEMO_OTP` | `1234` | Fixed OTP for assessment prototype personas |
-| `UPLOAD_MAX_SIZE_BYTES` | `2097152` | 2 MB evidence file size limit |
-| `UPLOAD_ALLOWED_MIMES` | `image/jpeg,image/png,image/webp` | Permitted image upload formats |
-| `SUPABASE_URL` | `https://[REF].supabase.co` | Supabase API endpoint |
-| `SUPABASE_SERVICE_ROLE_KEY` | `eyJhbGciOi...` | Server-side Supabase service-role secret |
-| `SUPABASE_STORAGE_BUCKET` | `recovery-evidence` | Evidence photo storage bucket name |
-| `UPSTASH_REDIS_REST_URL` | `https://[CLUSTER].upstash.io` | Upstash Redis REST endpoint (optional) |
-| `UPSTASH_REDIS_REST_TOKEN` | `[REST-TOKEN]` | Upstash Redis REST authorization token (optional) |
-| `SIMULATOR_TICK_MS` | `10000` | Real-time recovery simulation tick rate |
-| `CREDIT_CAP_PAISE` | `50000` | Rolling 30-day auto-credit cap (₹500 = 50,000 paise) |
+```env
+DATABASE_URL=postgresql://postgres.[PROJECT-REF]:[ENCODED-PASSWORD]@[HOST].pooler.supabase.com:5432/postgres
+FRONTEND_URL=https://rescue-resolve.vercel.app
+NODE_ENV=production
+JWT_SECRET=<STRONG_RANDOM_SECRET>
+JWT_EXPIRES_IN=7d
+DEMO_OTP=1234
+UPLOAD_MAX_SIZE_BYTES=2097152
+UPLOAD_ALLOWED_MIMES=image/jpeg,image/png,image/webp
+SUPABASE_URL=https://[PROJECT-REF].supabase.co
+SUPABASE_SERVICE_ROLE_KEY=[YOUR-SERVICE-ROLE-KEY]
+SUPABASE_STORAGE_BUCKET=recovery-evidence
+```
 
-*(Note: Render automatically injects `PORT`. The API dynamically binds to `0.0.0.0:${PORT}`.)*
+> ⚠️ **URL-Encoding Special Characters in Passwords:**
+> If your database password contains characters like `@`, `#`, `:`, `%`, or `/`, you **must URL-encode** them in `DATABASE_URL`.
+> Specifically, `@` must be encoded as `%40` (e.g. `ReSolve@3016` → `ReSolve%403016`).
+> An unencoded `@` causes Prisma to throw:
+> `Error validating datasource db: the URL must start with the protocol postgresql:// or postgres://`
 
 ---
 
@@ -148,7 +150,7 @@ Deploy `apps/web` as a **Vercel Project**.
 2. Select your repository: `Pratham-Chavan18/Rescue-Resolve`.
 3. In the configuration screen:
    - **Framework Preset:** `Next.js`
-   - **Root Directory:** `apps/web` *(Important: Click "Edit" and choose `apps/web`)*
+   - **Root Directory:** `apps/web` *(Click "Edit" and choose `apps/web`)*
    - Vercel automatically detects Turbo monorepo dependencies and builds `@swiggy/types` and `@swiggy/engines`.
 
 ### Step 5.2: Vercel Environment Variables
@@ -156,8 +158,8 @@ Add the following frontend variables in Vercel:
 
 | Key | Value | Description |
 | :--- | :--- | :--- |
-| `NEXT_PUBLIC_API_URL` | `https://your-render-service.onrender.com` | Base URL of deployed Render API |
-| `NEXT_PUBLIC_WS_URL` | `https://your-render-service.onrender.com` | Base URL for Socket.IO WebSocket gateway |
+| `NEXT_PUBLIC_API_URL` | `https://rescue-resolve.onrender.com` | Base URL of deployed Render API |
+| `NEXT_PUBLIC_WS_URL` | `https://rescue-resolve.onrender.com` | Base URL for Socket.IO WebSocket gateway |
 
 *(When `NEXT_PUBLIC_WS_URL` is omitted, `apps/web/src/lib/socket.ts` automatically falls back to `NEXT_PUBLIC_API_URL`.)*
 
@@ -165,12 +167,34 @@ Add the following frontend variables in Vercel:
 
 ## 6. One-Time Database Seeding (Demo Personas & Seed Orders)
 
-Once migrations are applied via the Pre-Deploy command, run the idempotent seed script once to populate synthetic assessment personas and mock orders:
+Once migrations are applied via Render Pre-Deploy command, execute the protected, idempotent seed script **once** to populate synthetic demo personas and sample orders.
 
-From your local machine or Render Shell:
+### Option A: Using Render Shell (Recommended)
+Open **Shell** in your Render Web Service dashboard (which automatically inherits the production `DATABASE_URL` pointing to Supabase) and run:
+
 ```bash
-# Execute idempotent seed script against the Supabase database
-DATABASE_URL="postgresql://postgres.[REF]:[PASS]@[HOST]:5432/postgres" pnpm --filter @swiggy/api run prisma:seed
+SEED_TARGET=production CONFIRM_PRODUCTION_SEED=YES_SEED_DEMO_DATA pnpm --filter @swiggy/api run prisma:seed
+```
+
+> 🔒 **Production Seeding Guard:** The seed script requires explicit confirmation (`SEED_TARGET=production` and `CONFIRM_PRODUCTION_SEED=YES_SEED_DEMO_DATA`). It validates that `DATABASE_URL` is configured, verifies the target host is not localhost, masks the host in logs (`aw***.pooler.supabase.com`), and guarantees that repeat runs never duplicate users, restaurants, menu items, riders, orders, or events.
+
+### Option B: Local Windows PowerShell (Alternative)
+If Render Shell is unavailable, you can seed Supabase from your local workstation using a temporary environment variable override. Ensure your database password with `@` is URL-encoded as `%40`:
+
+```powershell
+# 1. Verify target migration status against Supabase
+$env:DATABASE_URL="postgresql://postgres.[PROJECT-REF]:[ENCODED-PASSWORD]@[HOST].pooler.supabase.com:5432/postgres"
+pnpm --filter @swiggy/api exec prisma migrate status
+
+# 2. Run protected production seed
+$env:SEED_TARGET="production"
+$env:CONFIRM_PRODUCTION_SEED="YES_SEED_DEMO_DATA"
+pnpm --filter @swiggy/api run prisma:seed
+
+# 3. Clean up shell session variables
+Remove-Item Env:\DATABASE_URL
+Remove-Item Env:\SEED_TARGET
+Remove-Item Env:\CONFIRM_PRODUCTION_SEED
 ```
 
 ### Pre-configured Demo Personas:

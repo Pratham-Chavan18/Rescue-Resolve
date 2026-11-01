@@ -4,6 +4,11 @@ import { RealtimeService } from '../realtime/realtime.service';
 import { evaluate, DEFAULT_THRESHOLDS, type HealthSignal, type TriggerFired } from '@swiggy/engines';
 import type { HealthSignalKind } from '@swiggy/types';
 
+export interface DatabaseCheckResult {
+  connected: boolean;
+  schemaReady: boolean;
+}
+
 @Injectable()
 export class HealthService {
   constructor(
@@ -84,12 +89,21 @@ export class HealthService {
     return this.prisma.orderHealth.findUnique({ where: { orderId } });
   }
 
-  async checkDatabase(): Promise<boolean> {
+  async checkDatabase(): Promise<DatabaseCheckResult> {
     try {
       await this.prisma.$queryRaw`SELECT 1`;
-      return true;
+
+      const rows = await this.prisma.$queryRaw<Array<{ exists: boolean }>>`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_schema = 'public' 
+          AND table_name = 'orders'
+        ) as "exists";
+      `;
+      const schemaReady = Boolean(rows && rows[0]?.exists);
+      return { connected: true, schemaReady };
     } catch {
-      return false;
+      return { connected: false, schemaReady: false };
     }
   }
 }

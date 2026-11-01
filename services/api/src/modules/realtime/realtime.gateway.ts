@@ -20,7 +20,7 @@ import type { JwtPayload } from '@swiggy/types';
       if (isOriginAllowed(origin, allowed)) {
         callback(null, true);
       } else {
-        callback(new Error(`Origin ${origin} not allowed by Socket.IO CORS`));
+        callback(null, false);
       }
     },
     credentials: true,

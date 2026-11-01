@@ -26,17 +26,30 @@ export class HealthController {
    */
   @Get('ready')
   async getReadiness() {
-    const isDbOk = await this.healthService.checkDatabase();
-    if (!isDbOk) {
+    const dbStatus = await this.healthService.checkDatabase();
+    if (!dbStatus.connected) {
       throw new ServiceUnavailableException({
         status: 'error',
         database: 'disconnected',
+        schema: 'unreachable',
         timestamp: new Date().toISOString(),
       });
     }
+
+    if (!dbStatus.schemaReady) {
+      throw new ServiceUnavailableException({
+        status: 'error',
+        database: 'connected',
+        schema: 'pending_migration',
+        message: 'Database schema is not yet migrated. Run prisma migrate deploy.',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
     return {
       status: 'ok',
       database: 'connected',
+      schema: 'ready',
       timestamp: new Date().toISOString(),
     };
   }

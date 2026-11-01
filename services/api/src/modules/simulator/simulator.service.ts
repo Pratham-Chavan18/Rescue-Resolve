@@ -19,6 +19,8 @@ import type { SimFault, HealthSignalKind } from '@swiggy/types';
 export class SimulatorService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(SimulatorService.name);
   private tickTimer: NodeJS.Timeout | null = null;
+  private isDbReady = false;
+  private lastWarningAt = 0;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -44,6 +46,20 @@ export class SimulatorService implements OnModuleInit, OnModuleDestroy {
   /** Periodic lifecycle tick — advances demo order state */
   private async tick() {
     try {
+      if (!this.isDbReady) {
+        const dbStatus = await this.healthService.checkDatabase();
+        if (!dbStatus.connected || !dbStatus.schemaReady) {
+          const now = Date.now();
+          if (now - this.lastWarningAt > 60_000) {
+            this.logger.warn('Simulator waiting for database connection and schema migrations to complete...');
+            this.lastWarningAt = now;
+          }
+          return;
+        }
+        this.isDbReady = true;
+        this.logger.log('Database connection and schema verified — simulator running');
+      }
+
       const order = await this.prisma.order.findFirst({
         where: {
           id: 'order-demo-live',
@@ -69,8 +85,17 @@ export class SimulatorService implements OnModuleInit, OnModuleDestroy {
           at: new Date(),
         },
       });
-    } catch (err) {
-      this.logger.error('Simulator tick error', err);
+    } catch (err: any) {
+      if (err?.code === 'P2021' || err?.message?.includes('does not exist')) {
+        this.isDbReady = false;
+        const now = Date.now();
+        if (now - this.lastWarningAt > 60_000) {
+          this.logger.warn('Simulator paused: required database tables not found. Waiting for migration.');
+          this.lastWarningAt = now;
+        }
+      } else {
+        this.logger.error(`Simulator tick error: ${err?.message ?? err}`);
+      }
     }
   }
 

@@ -9,7 +9,11 @@
 
 export function getAllowedOrigins(): string[] {
   const envOrigins = process.env['FRONTEND_URL'];
-  const defaults = ['http://localhost:3000', 'http://127.0.0.1:3000'];
+  const defaults = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'https://rescue-resolve.vercel.app',
+  ];
 
   if (!envOrigins) {
     return defaults;
@@ -20,7 +24,7 @@ export function getAllowedOrigins(): string[] {
     .map((o) => o.trim().replace(/\/+$/, ''))
     .filter(Boolean);
 
-  const merged = Array.from(new Set([...parsed, ...defaults]));
+  const merged = Array.from(new Set([...defaults, ...parsed]));
   return merged;
 }
 
